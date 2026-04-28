@@ -1,0 +1,19 @@
+# Virtual environments
+venv/
+venv311/
+__pycache__/
+*.pyc
+
+# Output files (too large for GitHub)
+outputs/audio/
+outputs/video/
+outputs/final/
+
+# Workflow JSON (machine specific)
+wan_workflow_api.json
+
+# Environment variables
+.env
+
+# VS Code settings
+.vscode/
