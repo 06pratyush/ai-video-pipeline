@@ -30,7 +30,9 @@ app/workflows/
 # Node
 app/frontend/node_modules/
 app/frontend/dist/
+app/frontend/dist-electron/
 app/frontend/.vite/
+app/frontend/release/
 
 # VS Code settings
 .vscode/
