@@ -1,0 +1,15 @@
+{
+  "id": "product",
+  "name": "Product Showcase",
+  "description": "Confident, polished, hero-shot focused",
+  "voice": "am_michael",
+  "voice_speed": 1.0,
+  "scene_pacing": "medium",
+  "prompt_template": "{narration_chunk}, product hero shot, dramatic studio lighting, slow cinematic camera movement, shallow depth of field, luxury aesthetic, 4k",
+  "aspect_ratio": "1:1",
+  "resolution": "1080p",
+  "subtitles": false,
+  "music_mood": "corporate",
+  "post_processing": ["color_grade_commercial"],
+  "icon": "product.svg"
+}

@@ -1,0 +1,15 @@
+{
+  "id": "short",
+  "name": "Social Short",
+  "description": "Fast, hook-driven, vertical format for Reels and TikTok",
+  "voice": "af_heart",
+  "voice_speed": 1.1,
+  "scene_pacing": "fast",
+  "prompt_template": "{narration_chunk}, bold vibrant colors, dynamic motion, energetic composition, social media aesthetic, eye-catching subject, high saturation, 4k",
+  "aspect_ratio": "9:16",
+  "resolution": "1080p",
+  "subtitles": true,
+  "music_mood": "upbeat_energetic",
+  "post_processing": ["color_grade_vibrant"],
+  "icon": "short.svg"
+}

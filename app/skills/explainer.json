@@ -1,0 +1,15 @@
+{
+  "id": "explainer",
+  "name": "Explainer",
+  "description": "Conversational, energetic, concept-driven",
+  "voice": "af_sarah",
+  "voice_speed": 1.05,
+  "scene_pacing": "medium",
+  "prompt_template": "{narration_chunk}, clean explainer-style visualization, bright lighting, motion graphics aesthetic, clear subject focus, high contrast, 4k",
+  "aspect_ratio": "16:9",
+  "resolution": "1080p",
+  "subtitles": true,
+  "music_mood": "upbeat",
+  "post_processing": ["color_grade_bright"],
+  "icon": "explainer.svg"
+}

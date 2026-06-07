@@ -1,0 +1,59 @@
+{
+  "models": [
+    {
+      "id": "wan2.1-1.3b",
+      "name": "Wan2.1 (1.3B)",
+      "type": "video",
+      "vram_required_mb": 8192,
+      "size_gb": 2.8,
+      "quality_tier": "balanced",
+      "description": "Primary video model — balanced quality and speed",
+      "compatible_skills": ["documentary", "explainer", "product", "cinematic", "short", "tutorial", "news"],
+      "download_url": "https://huggingface.co/Wan-AI/Wan2.1-T2V-1.3B"
+    },
+    {
+      "id": "wan2.1-14b",
+      "name": "Wan2.1 (14B)",
+      "type": "video",
+      "vram_required_mb": 16384,
+      "size_gb": 28.0,
+      "quality_tier": "premium",
+      "description": "Premium video model — best quality, requires 16GB+ VRAM",
+      "compatible_skills": ["documentary", "cinematic"],
+      "download_url": "https://huggingface.co/Wan-AI/Wan2.1-T2V-14B"
+    },
+    {
+      "id": "ltx-video",
+      "name": "LTX-Video",
+      "type": "video",
+      "vram_required_mb": 8192,
+      "size_gb": 5.1,
+      "quality_tier": "fast",
+      "description": "Fast mode — 4x faster than Wan2.1, good for iteration",
+      "compatible_skills": ["short", "explainer"],
+      "download_url": "https://huggingface.co/Lightricks/LTX-Video"
+    },
+    {
+      "id": "gemma3-4b",
+      "name": "Gemma 3 (4B)",
+      "type": "llm",
+      "vram_required_mb": 4096,
+      "size_gb": 3.2,
+      "quality_tier": "balanced",
+      "description": "Recommended LLM for script refinement and scene prompt generation",
+      "compatible_skills": ["*"],
+      "download_url": "ollama pull gemma3:4b"
+    },
+    {
+      "id": "whisper-base",
+      "name": "Whisper Base",
+      "type": "transcriber",
+      "vram_required_mb": 1024,
+      "size_gb": 0.14,
+      "quality_tier": "fast",
+      "description": "Subtitle generation via faster-whisper",
+      "compatible_skills": ["explainer", "tutorial", "short", "news"],
+      "download_url": "auto"
+    }
+  ]
+}

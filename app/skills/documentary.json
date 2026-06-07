@@ -1,0 +1,15 @@
+{
+  "id": "documentary",
+  "name": "Documentary",
+  "description": "Slow, cinematic, third-person narration",
+  "voice": "bm_george",
+  "voice_speed": 0.95,
+  "scene_pacing": "slow",
+  "prompt_template": "{narration_chunk}, cinematic documentary style, natural lighting, wide composition, slow camera movement, photorealistic, 4k",
+  "aspect_ratio": "16:9",
+  "resolution": "1080p",
+  "subtitles": false,
+  "music_mood": "ambient_score",
+  "post_processing": ["color_grade_documentary", "film_grain_subtle"],
+  "icon": "documentary.svg"
+}

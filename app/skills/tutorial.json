@@ -1,0 +1,15 @@
+{
+  "id": "tutorial",
+  "name": "Tutorial",
+  "description": "Clear, instructional, step-by-step focused",
+  "voice": "af_nicole",
+  "voice_speed": 0.95,
+  "scene_pacing": "medium",
+  "prompt_template": "{narration_chunk}, instructional demonstration, clean bright background, clear subject focus, professional lighting, step-by-step visual, educational aesthetic, 4k",
+  "aspect_ratio": "16:9",
+  "resolution": "1080p",
+  "subtitles": true,
+  "music_mood": "calm",
+  "post_processing": ["color_grade_clean"],
+  "icon": "tutorial.svg"
+}

@@ -1,0 +1,15 @@
+{
+  "id": "cinematic",
+  "name": "Cinematic Story",
+  "description": "Dramatic, atmospheric, film-grain aesthetic",
+  "voice": "bm_george",
+  "voice_speed": 0.9,
+  "scene_pacing": "slow",
+  "prompt_template": "{narration_chunk}, cinematic film scene, golden hour lighting, anamorphic lens flare, atmospheric haze, film grain, dramatic composition, 35mm film aesthetic, 4k",
+  "aspect_ratio": "16:9",
+  "resolution": "1080p",
+  "subtitles": false,
+  "music_mood": "emotional_score",
+  "post_processing": ["color_grade_cinematic", "film_grain", "letterbox"],
+  "icon": "cinematic.svg"
+}

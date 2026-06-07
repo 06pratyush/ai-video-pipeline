@@ -1,19 +1,36 @@
 # Virtual environments
 venv/
 venv311/
+app/runtime/python/
 __pycache__/
 *.pyc
+*.pyo
 
 # Output files (too large for GitHub)
 outputs/audio/
 outputs/video/
 outputs/final/
+app/projects/
+
+# Runtime / bundled assets (downloaded at install time)
+app/runtime/comfyui/
+app/runtime/ffmpeg/
+app/runtime/models/
+
+# Database
+app/backend/db.sqlite
 
 # Workflow JSON (machine specific)
 wan_workflow_api.json
+app/workflows/
 
 # Environment variables
 .env
+
+# Node
+app/frontend/node_modules/
+app/frontend/dist/
+app/frontend/.vite/
 
 # VS Code settings
 .vscode/

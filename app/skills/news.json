@@ -1,0 +1,15 @@
+{
+  "id": "news",
+  "name": "News Brief",
+  "description": "Authoritative, fast-paced, photojournalistic",
+  "voice": "am_adam",
+  "voice_speed": 1.05,
+  "scene_pacing": "fast",
+  "prompt_template": "{narration_chunk}, photojournalistic style, documentary photography, natural available light, candid composition, high contrast black and white option, current events imagery, 4k",
+  "aspect_ratio": "16:9",
+  "resolution": "1080p",
+  "subtitles": true,
+  "music_mood": "news_sting",
+  "post_processing": ["color_grade_news"],
+  "icon": "news.svg"
+}
