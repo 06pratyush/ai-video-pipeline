@@ -53,11 +53,17 @@ def stop_worker():
     _running = False
 
 
-def enqueue(project_id: str) -> str:
+def enqueue(project_id: str, render_opts: dict | None = None) -> str:
     """Add a project's full pipeline to the queue. Returns the queue item id."""
+    import json as _json
     db: Session = SessionLocal()
     try:
-        item = QueueItem(project_id=project_id, stage="full_pipeline", status="queued")
+        item = QueueItem(
+            project_id=project_id,
+            stage="full_pipeline",
+            status="queued",
+            render_opts=_json.dumps(render_opts or {}),
+        )
         db.add(item)
         db.commit()
         db.refresh(item)
@@ -102,11 +108,17 @@ def _worker_loop():
 
 
 def _run_pipeline(queue_item_id: str, project_id: str):
+    import json as _json
     db: Session = SessionLocal()
     try:
         project = db.query(Project).filter_by(id=project_id).first()
         if not project:
             return
+
+        # Load render opts from queue item
+        item_for_opts = db.query(QueueItem).filter_by(id=queue_item_id).first()
+        raw_opts = item_for_opts.render_opts if item_for_opts else None
+        render_opts: dict = _json.loads(raw_opts) if raw_opts else {}
 
         project.status = "running"
         db.commit()
@@ -169,6 +181,25 @@ def _run_pipeline(queue_item_id: str, project_id: str):
         project.audio_duration = audio_duration
         db.commit()
 
+        # ── Step 3b: Generate background music (optional) ─────────────
+        music_path: str | None = None
+        want_music = render_opts.get("music", False)
+        if not want_music and skill_data:
+            # Also auto-enable if skill has a music_mood set
+            want_music = bool(skill_data.get("music_mood"))
+        if want_music:
+            _emit(project_id, "music", 0.22, "running", "Generating background music...")
+            try:
+                from app.backend.pipeline.musicgen_client import generate_music, is_available
+                if is_available():
+                    mood = (skill_data.get("music_mood") if skill_data else None) or "ambient_score"
+                    music_out = str(audio_dir / "background_music.wav")
+                    music_path = generate_music(mood, audio_duration, music_out)
+                else:
+                    print("[QUEUE] MusicGen not available, skipping background music")
+            except Exception as e:
+                print(f"[QUEUE] Music generation failed (non-fatal): {e}")
+
         # ── Step 4: Generate video clips ─────────────────────────────
         scenes = db.query(Scene).filter_by(project_id=project_id).order_by(Scene.index).all()
         workflow_path = "wan_workflow_api.json"
@@ -211,14 +242,16 @@ def _run_pipeline(queue_item_id: str, project_id: str):
                 db.commit()
                 print(f"[QUEUE] Scene {i+1} failed: {e}")
 
-        # ── Step 5: Merge ─────────────────────────────────────────────
+        # ── Step 5: Merge clips ───────────────────────────────────────
         if not video_clips:
             raise RuntimeError("No video clips generated")
 
-        _emit(project_id, "merging", 0.75, "running", "Merging clips and audio...")
+        _emit(project_id, "merging", 0.72, "running", "Merging clips...")
         from app.backend.pipeline.ffmpeg_merger import (
-            concatenate_clips, merge_video_audio, convert_aspect_ratio
+            concatenate_clips, merge_video_audio, merge_with_background_music,
+            convert_aspect_ratio, apply_post_processing_chain, add_subtitles,
         )
+        import shutil
 
         if len(video_clips) > 1:
             concat_path = str(scenes_dir / "concat.mp4")
@@ -226,25 +259,73 @@ def _run_pipeline(queue_item_id: str, project_id: str):
         else:
             source_video = video_clips[0]
 
-        merged_path = str(final_dir / "merged.mp4")
-        merge_video_audio(source_video, audio_path, merged_path, audio_duration)
+        # ── Step 5b: Frame interpolation (optional) ───────────────────
+        want_interp = render_opts.get("interpolation", False)
+        if want_interp:
+            _emit(project_id, "interpolating", 0.76, "running", "Interpolating to 30fps...")
+            try:
+                from app.backend.pipeline.rife_client import interpolate_to_fps
+                interp_path = str(scenes_dir / "interpolated.mp4")
+                source_video = interpolate_to_fps(source_video, interp_path, 30)
+            except Exception as e:
+                print(f"[QUEUE] Interpolation failed (non-fatal): {e}")
 
-        # Apply aspect ratio / resolution from skill
+        # ── Step 5c: Merge video + audio (with optional music) ────────
+        _emit(project_id, "merging", 0.79, "running", "Merging audio...")
+        merged_path = str(final_dir / "merged.mp4")
+        if music_path and Path(music_path).exists():
+            merge_with_background_music(source_video, audio_path, music_path, merged_path, audio_duration)
+        else:
+            merge_video_audio(source_video, audio_path, merged_path, audio_duration)
+
+        # ── Step 5d: Upscaling (optional) ─────────────────────────────
+        want_upscale = render_opts.get("upscaling", False)
+        if want_upscale:
+            _emit(project_id, "upscaling", 0.82, "running", "Upscaling to 1080p...")
+            try:
+                from app.backend.pipeline.esrgan_client import upscale_2x
+                upscaled_path = str(final_dir / "upscaled.mp4")
+                merged_path = upscale_2x(merged_path, upscaled_path)
+            except Exception as e:
+                print(f"[QUEUE] Upscaling failed (non-fatal): {e}")
+
+        # ── Step 5e: Aspect ratio + resolution ────────────────────────
         aspect = skill_data.get("aspect_ratio", "16:9") if skill_data else "16:9"
         resolution = skill_data.get("resolution", "1080p") if skill_data else "1080p"
         aspect_path = str(final_dir / "aspect.mp4")
         convert_aspect_ratio(merged_path, aspect_path, aspect, resolution)
 
-        # Apply post-processing chain (color grade, letterbox, film grain, etc.)
+        # ── Step 5f: Post-processing chain (color grade, etc.) ────────
         post_effects: list[str] = skill_data.get("post_processing", []) if skill_data else []
-        final_path = str(final_dir / "final.mp4")
+        pp_path = str(final_dir / "postprocessed.mp4")
         if post_effects:
             _emit(project_id, "post_processing", 0.88, "running", "Applying post-processing...")
-            from app.backend.pipeline.ffmpeg_merger import apply_post_processing_chain
-            apply_post_processing_chain(aspect_path, final_path, post_effects)
+            apply_post_processing_chain(aspect_path, pp_path, post_effects)
         else:
-            import shutil
-            shutil.copy2(aspect_path, final_path)
+            shutil.copy2(aspect_path, pp_path)
+
+        # ── Step 5g: Subtitles (optional) ─────────────────────────────
+        want_subtitles = render_opts.get("subtitles", False)
+        if not want_subtitles and skill_data:
+            want_subtitles = skill_data.get("subtitles", False)
+
+        final_path = str(final_dir / "final.mp4")
+        if want_subtitles:
+            _emit(project_id, "subtitles", 0.93, "running", "Generating subtitles...")
+            try:
+                from app.backend.pipeline.whisper_client import transcribe_to_srt_file, is_available
+                if is_available():
+                    srt_path = str(audio_dir / "subtitles.srt")
+                    transcribe_to_srt_file(audio_path, srt_path)
+                    add_subtitles(pp_path, srt_path, final_path)
+                else:
+                    print("[QUEUE] faster-whisper not available, skipping subtitles")
+                    shutil.copy2(pp_path, final_path)
+            except Exception as e:
+                print(f"[QUEUE] Subtitle generation failed (non-fatal): {e}")
+                shutil.copy2(pp_path, final_path)
+        else:
+            shutil.copy2(pp_path, final_path)
 
         project.final_path = final_path
         project.status = "done"

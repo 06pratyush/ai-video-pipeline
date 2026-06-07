@@ -16,6 +16,7 @@ class QueueItem(Base):
     progress = Column(Float, default=0.0)
     eta_seconds = Column(Float, nullable=True)
     error_message = Column(Text, nullable=True)
+    render_opts = Column(Text, nullable=True)  # JSON: {subtitles, music, interpolation, upscaling}
     created_at = Column(DateTime, default=datetime.utcnow)
     started_at = Column(DateTime, nullable=True)
     completed_at = Column(DateTime, nullable=True)

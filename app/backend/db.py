@@ -23,3 +23,19 @@ def get_db():
 def init_db():
     from app.backend.models import project, scene, queue_item  # noqa: F401
     Base.metadata.create_all(bind=engine)
+    _run_migrations()
+
+
+def _run_migrations():
+    """Apply additive column migrations that create_all won't handle on existing tables."""
+    from sqlalchemy import text
+    migrations = [
+        "ALTER TABLE queue_items ADD COLUMN render_opts TEXT",
+    ]
+    with engine.connect() as conn:
+        for sql in migrations:
+            try:
+                conn.execute(text(sql))
+                conn.commit()
+            except Exception:
+                pass  # column already exists or table doesn't exist yet

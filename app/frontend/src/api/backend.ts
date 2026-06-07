@@ -38,8 +38,11 @@ export const api = {
 
   // ── Generation ────────────────────────────────────────────────────────────
   generation: {
-    start:   (projectId: string) => req<{ queued: boolean; queue_item_id: string }>
-      ('POST', '/generation/start', { project_id: projectId }),
+    start: (projectId: string, renderOpts?: RenderOpts) =>
+      req<{ queued: boolean; queue_item_id: string }>(
+        'POST', '/generation/start',
+        { project_id: projectId, render_opts: renderOpts ?? null },
+      ),
     cancel:  (queueItemId: string) => req('POST', `/generation/cancel/${queueItemId}`),
     queue:   ()  => req<QueueItem[]>('GET', '/generation/queue'),
     history: ()  => req<QueueItem[]>('GET', '/generation/history'),
@@ -170,6 +173,13 @@ export interface Skill {
   music_mood: string
   post_processing: string[]
   icon: string
+}
+
+export interface RenderOpts {
+  subtitles: boolean
+  music: boolean
+  interpolation: boolean
+  upscaling: boolean
 }
 
 export interface ProgressMessage {

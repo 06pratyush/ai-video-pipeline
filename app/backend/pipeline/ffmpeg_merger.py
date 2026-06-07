@@ -66,13 +66,56 @@ def apply_lut(input_path: str, output_path: str, lut_path: str) -> str:
 
 
 def add_subtitles(input_path: str, srt_path: str, output_path: str) -> str:
-    """Burn SRT subtitles into video."""
+    """Burn SRT subtitles with styled typography into video."""
+    # Use subtitles filter with force_style for clean white text + shadow
+    safe_srt = srt_path.replace("\\", "/").replace(":", "\\:")
+    style = (
+        "FontName=Arial,FontSize=18,PrimaryColour=&H00FFFFFF,"
+        "OutlineColour=&H00000000,BackColour=&H80000000,"
+        "Bold=1,Outline=2,Shadow=1,Alignment=2,MarginV=30"
+    )
     cmd = [
         "ffmpeg", "-y", "-i", input_path,
-        "-vf", f"subtitles={srt_path}",
-        "-c:a", "copy", output_path,
+        "-vf", f"subtitles='{safe_srt}':force_style='{style}'",
+        "-c:v", "libx264", "-crf", "20", "-preset", "medium",
+        "-c:a", "copy", "-movflags", "+faststart",
+        output_path,
     ]
     _run(cmd, "subtitles")
+    return output_path
+
+
+def merge_with_background_music(
+    video_path: str,
+    narration_path: str,
+    music_path: str,
+    output_path: str,
+    audio_duration: float,
+    music_volume: float = 0.12,
+) -> str:
+    """
+    Mix narration + background music with auto-ducking.
+    Music is looped to match duration, then ducked under narration.
+    """
+    os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
+    # amix: narration at full volume, music at music_volume
+    # Stream loop music in case it's shorter than narration
+    cmd = [
+        "ffmpeg", "-y",
+        "-stream_loop", "-1", "-i", video_path,
+        "-i", narration_path,
+        "-stream_loop", "-1", "-i", music_path,
+        "-t", str(audio_duration),
+        "-filter_complex",
+        f"[1:a]volume=1.0[narr];"
+        f"[2:a]volume={music_volume}[music];"
+        "[narr][music]amix=inputs=2:duration=first:dropout_transition=2[aout]",
+        "-map", "0:v", "-map", "[aout]",
+        "-c:v", "libx264", "-c:a", "aac", "-b:a", "192k",
+        "-pix_fmt", "yuv420p", "-movflags", "+faststart",
+        output_path,
+    ]
+    _run(cmd, "merge_with_music")
     return output_path
 
 

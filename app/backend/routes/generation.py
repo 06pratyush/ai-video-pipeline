@@ -56,8 +56,16 @@ async def progress_ws(websocket: WebSocket, project_id: str):
             ]
 
 
+class RenderOpts(BaseModel):
+    subtitles: bool = False
+    music: bool = False
+    interpolation: bool = False
+    upscaling: bool = False
+
+
 class GenerateRequest(BaseModel):
     project_id: str
+    render_opts: Optional[RenderOpts] = None
 
 
 @router.post("/start")
@@ -67,7 +75,8 @@ def start_generation(req: GenerateRequest, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Project not found")
     if project.status == "running":
         raise HTTPException(status_code=409, detail="Project is already generating")
-    queue_id = generation_queue.enqueue(req.project_id)
+    opts_dict = req.render_opts.model_dump() if req.render_opts else {}
+    queue_id = generation_queue.enqueue(req.project_id, opts_dict)
     project.status = "queued"
     db.commit()
     return {"queued": True, "queue_item_id": queue_id}

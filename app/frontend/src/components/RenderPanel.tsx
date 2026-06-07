@@ -1,25 +1,46 @@
+import { useState } from 'react'
 import { useActiveProject } from '@/stores/projectStore'
 import { useQueueStore } from '@/stores/queueStore'
+import { useModelStore } from '@/stores/modelStore'
+import { RenderOpts } from '@/api/backend'
 
 export default function RenderPanel() {
-  const project = useActiveProject()
+  const project    = useActiveProject()
+  const { skills } = useModelStore()
   const { startGeneration, progress } = useQueueStore()
 
+  const activeSkill = skills.find((s) => s.id === project?.skill_id) ?? null
+
+  // Quality settings — defaults pulled from skill, overridable
+  const [opts, setOpts] = useState<RenderOpts>(() => ({
+    subtitles:    activeSkill?.subtitles    ?? false,
+    music:        !!(activeSkill?.music_mood),
+    interpolation: false,
+    upscaling:    false,
+  }))
+
   if (!project) {
-    return <div className="flex items-center justify-center h-full text-text-disabled text-sm">
-      No project selected.
-    </div>
+    return (
+      <div className="flex items-center justify-center h-full text-text-disabled text-sm">
+        No project selected.
+      </div>
+    )
   }
 
-  const prog = progress[project.id]
+  const prog      = progress[project.id]
   const isRunning = project.status === 'running' || project.status === 'queued'
   const isDone    = project.status === 'done'
   const isError   = project.status === 'error'
 
-  return (
-    <div className="flex flex-col gap-6 p-5 overflow-y-auto h-full">
+  const toggle = (key: keyof RenderOpts) =>
+    setOpts((o) => ({ ...o, [key]: !o[key] }))
 
-      {/* Generation status */}
+  const handleGenerate = () => startGeneration(project.id, opts)
+
+  return (
+    <div className="flex flex-col gap-5 p-5 overflow-y-auto h-full">
+
+      {/* Generation progress */}
       {isRunning && prog && (
         <div className="card">
           <div className="flex items-center justify-between mb-2">
@@ -38,7 +59,7 @@ export default function RenderPanel() {
         </div>
       )}
 
-      {/* Output */}
+      {/* Success */}
       {isDone && project.final_path && (
         <div className="card flex flex-col gap-3">
           <div className="flex items-center gap-2">
@@ -66,6 +87,7 @@ export default function RenderPanel() {
         </div>
       )}
 
+      {/* Error */}
       {isError && (
         <div className="card border-error/30">
           <div className="flex items-center gap-2 mb-1">
@@ -73,6 +95,46 @@ export default function RenderPanel() {
             <span className="text-sm font-medium text-error">Generation failed</span>
           </div>
           <p className="text-xs text-text-muted">{prog?.message || 'Check the backend logs for details.'}</p>
+        </div>
+      )}
+
+      {/* Quality settings */}
+      {!isRunning && (
+        <div className="card">
+          <h3 className="text-xs font-medium text-text-secondary uppercase tracking-wider mb-3">
+            Quality Settings
+          </h3>
+          <div className="flex flex-col gap-3">
+            <QualityToggle
+              label="Subtitles"
+              description="Auto-generate via Whisper and burn into video"
+              badge={activeSkill?.subtitles ? 'skill' : undefined}
+              value={opts.subtitles}
+              onChange={() => toggle('subtitles')}
+            />
+            <QualityToggle
+              label="Background Music"
+              description={activeSkill?.music_mood
+                ? `MusicGen · mood: ${activeSkill.music_mood.replace(/_/g, ' ')}`
+                : 'Generate AI soundtrack matching the skill mood'
+              }
+              badge={activeSkill?.music_mood ? 'skill' : undefined}
+              value={opts.music}
+              onChange={() => toggle('music')}
+            />
+            <QualityToggle
+              label="Frame Interpolation"
+              description="Smooth to 30fps via minterpolate · adds ~30% render time"
+              value={opts.interpolation}
+              onChange={() => toggle('interpolation')}
+            />
+            <QualityToggle
+              label="Upscaling"
+              description="2× upscale to 1080p via super2xbr · adds ~20% render time"
+              value={opts.upscaling}
+              onChange={() => toggle('upscaling')}
+            />
+          </div>
         </div>
       )}
 
@@ -100,7 +162,7 @@ export default function RenderPanel() {
             className={`btn-primary w-full py-3 text-sm font-semibold
               ${!project.script?.trim() ? 'opacity-50 cursor-not-allowed' : ''}`}
             disabled={!project.script?.trim() || isRunning}
-            onClick={() => startGeneration(project.id)}
+            onClick={handleGenerate}
           >
             {isDone ? '↺ Re-generate' : '▶ Generate Video'}
           </button>
@@ -111,6 +173,44 @@ export default function RenderPanel() {
           )}
         </div>
       )}
+    </div>
+  )
+}
+
+function QualityToggle({
+  label, description, badge, value, onChange,
+}: {
+  label: string
+  description: string
+  badge?: string
+  value: boolean
+  onChange: () => void
+}) {
+  return (
+    <div className="flex items-start gap-3">
+      <button
+        onClick={onChange}
+        className={`mt-0.5 w-9 h-5 rounded-full transition-colors shrink-0
+          ${value ? 'bg-accent' : 'bg-bg-muted border border-border-subtle'}`}
+        role="switch"
+        aria-checked={value}
+      >
+        <span
+          className={`block w-3.5 h-3.5 rounded-full bg-white shadow transition-transform mx-0.5
+            ${value ? 'translate-x-4' : 'translate-x-0'}`}
+        />
+      </button>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-1.5">
+          <span className="text-sm text-text-primary">{label}</span>
+          {badge && (
+            <span className="text-xs text-accent/70 border border-accent/30 px-1 rounded">
+              {badge}
+            </span>
+          )}
+        </div>
+        <p className="text-xs text-text-muted mt-0.5">{description}</p>
+      </div>
     </div>
   )
 }

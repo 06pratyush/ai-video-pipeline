@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { api, QueueItem, ProgressMessage, connectProgressWS } from '@/api/backend'
+import { api, QueueItem, ProgressMessage, RenderOpts, connectProgressWS } from '@/api/backend'
 import { useProjectStore } from './projectStore'
 
 interface QueueStore {
@@ -8,7 +8,7 @@ interface QueueStore {
   sockets: Record<string, WebSocket>
 
   fetchQueue: () => Promise<void>
-  startGeneration: (projectId: string) => Promise<void>
+  startGeneration: (projectId: string, renderOpts?: RenderOpts) => Promise<void>
   cancelItem: (queueItemId: string) => Promise<void>
   subscribeToProject: (projectId: string) => void
   unsubscribeFromProject: (projectId: string) => void
@@ -25,8 +25,8 @@ export const useQueueStore = create<QueueStore>((set, get) => ({
     set({ items })
   },
 
-  startGeneration: async (projectId: string) => {
-    await api.generation.start(projectId)
+  startGeneration: async (projectId: string, renderOpts?: RenderOpts) => {
+    await api.generation.start(projectId, renderOpts)
     useProjectStore.getState().updateProjectLocally(projectId, { status: 'queued' })
     get().subscribeToProject(projectId)
     get().fetchQueue()
