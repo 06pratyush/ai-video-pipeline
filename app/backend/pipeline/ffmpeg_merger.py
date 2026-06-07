@@ -107,6 +107,130 @@ def convert_for_youtube(input_path: str, output_path: str) -> str:
     return output_path
 
 
+def apply_color_grade(input_path: str, output_path: str, grade: str) -> str:
+    """Apply a color grade style using FFmpeg curves — no external LUT files needed."""
+    grade_filters: dict[str, str] = {
+        # Teal-orange cinematic: lift shadows toward teal, push highlights orange
+        "color_grade_cinematic": (
+            "curves=red='0/0 0.5/0.58 1/1':green='0/0 0.5/0.48 1/1':blue='0/0.06 0.5/0.42 1/0.92',"
+            "eq=saturation=1.15:contrast=1.05"
+        ),
+        # Documentary: warm natural tones, slight desaturation
+        "color_grade_documentary": (
+            "curves=red='0/0.02 0.5/0.54 1/0.98':green='0/0 0.5/0.50 1/1':blue='0/0 0.5/0.46 1/0.88',"
+            "eq=saturation=0.9:brightness=0.02:contrast=1.03"
+        ),
+        # Bright explainer: high contrast, neutral-cool, punchy
+        "color_grade_bright": (
+            "curves=all='0/0 0.4/0.45 0.7/0.78 1/1',"
+            "eq=saturation=1.1:contrast=1.08:brightness=0.03"
+        ),
+        # Vibrant social: max saturation, high contrast, warm
+        "color_grade_vibrant": (
+            "curves=red='0/0 0.5/0.56 1/1':blue='0/0 0.5/0.44 1/0.95',"
+            "eq=saturation=1.35:contrast=1.1"
+        ),
+        # Product: clean, neutral, slight brightness boost
+        "color_grade_product": (
+            "curves=all='0/0.02 0.5/0.52 1/0.98',"
+            "eq=saturation=1.05:brightness=0.03:contrast=1.05"
+        ),
+        # News: neutral, slight desaturation, increase contrast
+        "color_grade_news": (
+            "eq=saturation=0.85:contrast=1.12:brightness=0.01"
+        ),
+        # Tutorial: clean neutral
+        "color_grade_tutorial": (
+            "eq=saturation=1.0:contrast=1.02:brightness=0.01"
+        ),
+    }
+    vf = grade_filters.get(grade)
+    if not vf:
+        return input_path  # unknown grade → pass-through
+    cmd = [
+        "ffmpeg", "-y", "-i", input_path,
+        "-vf", vf,
+        "-c:v", "libx264", "-crf", "20", "-preset", "medium",
+        "-c:a", "copy", "-movflags", "+faststart",
+        output_path,
+    ]
+    _run(cmd, f"color_grade:{grade}")
+    return output_path
+
+
+def apply_letterbox(input_path: str, output_path: str) -> str:
+    """Add 2.39:1 cinematic black bars (letterbox)."""
+    # For 1920×1080 input, 2.39:1 = 1920×803 → pad with (1080-803)/2 = 138.5px top+bottom
+    cmd = [
+        "ffmpeg", "-y", "-i", input_path,
+        "-vf",
+        "crop=iw:iw/2.39,pad=iw:ih+2*ceil((iw/2.39-oh)/2+0.5):0:(oh-ih)/2:black",
+        "-c:v", "libx264", "-crf", "20", "-preset", "medium",
+        "-c:a", "copy", "-movflags", "+faststart",
+        output_path,
+    ]
+    _run(cmd, "letterbox")
+    return output_path
+
+
+def apply_film_grain(input_path: str, output_path: str, strength: str = "subtle") -> str:
+    """Add film grain via FFmpeg noise filter."""
+    noise = "10" if strength == "subtle" else "20"
+    cmd = [
+        "ffmpeg", "-y", "-i", input_path,
+        "-vf", f"noise=c0s={noise}:c0f=t+u",
+        "-c:v", "libx264", "-crf", "20", "-preset", "medium",
+        "-c:a", "copy", "-movflags", "+faststart",
+        output_path,
+    ]
+    _run(cmd, "film_grain")
+    return output_path
+
+
+def apply_post_processing_chain(
+    input_path: str,
+    output_path: str,
+    effects: list[str],
+) -> str:
+    """Apply a list of post_processing effect names from a Skill JSON."""
+    import tempfile, os
+    current = input_path
+    tmp_files: list[str] = []
+
+    def _tmp(suffix: str) -> str:
+        f = tempfile.NamedTemporaryFile(suffix=suffix, delete=False)
+        f.close()
+        tmp_files.append(f.name)
+        return f.name
+
+    for effect in effects:
+        out = _tmp(".mp4")
+        if effect.startswith("color_grade_"):
+            result = apply_color_grade(current, out, effect)
+        elif effect == "letterbox":
+            result = apply_letterbox(current, out)
+        elif effect == "film_grain":
+            result = apply_film_grain(current, out, "heavy")
+        elif effect == "film_grain_subtle":
+            result = apply_film_grain(current, out, "subtle")
+        else:
+            result = current  # unknown effect → skip
+        if result != current:
+            current = out
+
+    # Copy final result to output_path
+    import shutil
+    shutil.copy2(current, output_path)
+
+    for f in tmp_files:
+        try:
+            os.unlink(f)
+        except OSError:
+            pass
+
+    return output_path
+
+
 def convert_aspect_ratio(
     input_path: str, output_path: str,
     aspect: str = "16:9", resolution: str = "1080p"

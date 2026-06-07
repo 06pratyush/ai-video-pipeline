@@ -133,13 +133,12 @@ def _run_pipeline(queue_item_id: str, project_id: str):
             print(f"[QUEUE] Gemma refine failed: {e}, using raw script")
             narration = project.script
 
+        # ── Load skill early — used across all steps ──────────────────
+        skill_data = _load_skill(project.skill_id) if project.skill_id else None
+
         # ── Step 2: Generate video prompts ───────────────────────────
         _emit(project_id, "prompts", 0.1, "running", "Generating scene prompts...")
-        skill_template = None
-        if project.skill_id:
-            skill_data = _load_skill(project.skill_id)
-            if skill_data:
-                skill_template = skill_data.get("prompt_template")
+        skill_template = skill_data.get("prompt_template") if skill_data else None
 
         prompts = gemma.generate_video_prompts(narration, project.num_scenes, skill_template)
 
@@ -157,7 +156,14 @@ def _run_pipeline(queue_item_id: str, project_id: str):
         # ── Step 3: Generate audio ────────────────────────────────────
         _emit(project_id, "audio", 0.2, "running", "Generating voice audio...")
         from app.backend.pipeline.kokoro_tts import KokoroTTSClient
-        tts = KokoroTTSClient(voice=project.voice)
+        # Skill voice takes precedence; fall back to project voice, then default
+        effective_voice = (
+            (skill_data.get("voice") if skill_data else None)
+            or project.voice
+            or "af_sarah"
+        )
+        effective_speed = float(skill_data.get("voice_speed", 1.0)) if skill_data else 1.0
+        tts = KokoroTTSClient(voice=effective_voice, speed=effective_speed)
         audio_path = str(audio_dir / "narration.wav")
         audio_path, audio_duration = tts.generate(narration, audio_path)
         project.audio_duration = audio_duration
@@ -223,12 +229,22 @@ def _run_pipeline(queue_item_id: str, project_id: str):
         merged_path = str(final_dir / "merged.mp4")
         merge_video_audio(source_video, audio_path, merged_path, audio_duration)
 
-        # Apply aspect ratio / resolution if skill specifies
-        skill_data = _load_skill(project.skill_id) if project.skill_id else None
+        # Apply aspect ratio / resolution from skill
         aspect = skill_data.get("aspect_ratio", "16:9") if skill_data else "16:9"
         resolution = skill_data.get("resolution", "1080p") if skill_data else "1080p"
+        aspect_path = str(final_dir / "aspect.mp4")
+        convert_aspect_ratio(merged_path, aspect_path, aspect, resolution)
+
+        # Apply post-processing chain (color grade, letterbox, film grain, etc.)
+        post_effects: list[str] = skill_data.get("post_processing", []) if skill_data else []
         final_path = str(final_dir / "final.mp4")
-        convert_aspect_ratio(merged_path, final_path, aspect, resolution)
+        if post_effects:
+            _emit(project_id, "post_processing", 0.88, "running", "Applying post-processing...")
+            from app.backend.pipeline.ffmpeg_merger import apply_post_processing_chain
+            apply_post_processing_chain(aspect_path, final_path, post_effects)
+        else:
+            import shutil
+            shutil.copy2(aspect_path, final_path)
 
         project.final_path = final_path
         project.status = "done"

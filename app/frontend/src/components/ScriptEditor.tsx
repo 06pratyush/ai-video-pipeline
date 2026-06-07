@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useProjectStore, useActiveProject } from '@/stores/projectStore'
+import { useModelStore } from '@/stores/modelStore'
 import SkillPicker from './SkillPicker'
 
 const VOICES = [
@@ -13,9 +14,12 @@ const VOICES = [
   { id: 'bm_george',  label: 'George — British Male' },
 ]
 
+const PACING_LABEL: Record<string, string> = { slow: 'Slow paced', medium: 'Medium paced', fast: 'Fast paced' }
+
 export default function ScriptEditor() {
   const project = useActiveProject()
   const { updateProject } = useProjectStore()
+  const { skills } = useModelStore()
 
   const [script,    setScript]    = useState(project?.script    ?? '')
   const [voice,     setVoice]     = useState(project?.voice     ?? 'af_sarah')
@@ -31,6 +35,21 @@ export default function ScriptEditor() {
     setSkillId(project?.skill_id ?? null)
     setDirty(false)
   }, [project?.id]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Auto-apply skill voice when skill is selected
+  const activeSkill = skills.find((s) => s.id === skillId) ?? null
+  const voiceIsOverriddenBySkill = !!(activeSkill && voice === activeSkill.voice)
+
+  const handleSkillChange = (id: string | null) => {
+    setSkillId(id)
+    setDirty(true)
+    if (id) {
+      const skill = skills.find((s) => s.id === id)
+      if (skill) {
+        setVoice(skill.voice) // auto-apply skill's voice
+      }
+    }
+  }
 
   if (!project) return <EmptyState />
 
@@ -63,11 +82,44 @@ export default function ScriptEditor() {
         />
       </div>
 
-      {/* Voice */}
+      {/* Skill picker */}
       <div>
         <label className="text-xs font-medium text-text-secondary uppercase tracking-wider block mb-2">
-          Voice
+          Skill
         </label>
+        <SkillPicker value={skillId} onChange={handleSkillChange} />
+      </div>
+
+      {/* Active skill summary */}
+      {activeSkill && (
+        <div className="rounded-lg border border-accent/20 bg-accent/5 px-3 py-2.5 text-xs text-text-muted space-y-1">
+          <div className="flex flex-wrap gap-x-3 gap-y-1">
+            <span><span className="text-text-disabled">Output</span> {activeSkill.aspect_ratio} · {activeSkill.resolution}</span>
+            <span><span className="text-text-disabled">Pacing</span> {PACING_LABEL[activeSkill.scene_pacing] ?? activeSkill.scene_pacing}</span>
+            {activeSkill.subtitles && <span className="text-accent">Subtitles on</span>}
+          </div>
+          {activeSkill.post_processing.length > 0 && (
+            <div className="flex flex-wrap gap-1 pt-0.5">
+              {activeSkill.post_processing.map((fx) => (
+                <span key={fx} className="px-1.5 py-0.5 rounded bg-bg-raised border border-border-subtle text-text-disabled">
+                  {fx.replace(/_/g, ' ')}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Voice */}
+      <div>
+        <div className="flex items-center justify-between mb-2">
+          <label className="text-xs font-medium text-text-secondary uppercase tracking-wider">
+            Voice
+          </label>
+          {voiceIsOverriddenBySkill && (
+            <span className="text-xs text-accent/70">set by skill</span>
+          )}
+        </div>
         <select
           className="input text-sm"
           value={voice}
@@ -96,14 +148,6 @@ export default function ScriptEditor() {
         <div className="flex justify-between text-xs text-text-disabled mt-1">
           <span>1</span><span>4</span><span>8</span>
         </div>
-      </div>
-
-      {/* Skill picker */}
-      <div>
-        <label className="text-xs font-medium text-text-secondary uppercase tracking-wider block mb-2">
-          Skill
-        </label>
-        <SkillPicker value={skillId} onChange={(id) => { setSkillId(id); setDirty(true) }} />
       </div>
 
       {/* Save bar */}
