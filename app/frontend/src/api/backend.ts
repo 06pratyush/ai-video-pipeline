@@ -13,11 +13,14 @@ async function req<T>(method: string, path: string, body?: unknown): Promise<T> 
   return res.json()
 }
 
-// ── System ────────────────────────────────────────────────────────────────────
 export const api = {
+  // ── System ──────────────────────────────────────────────────────────────────
   system: {
-    health: ()  => req<{ status: string }>('GET', '/system/health'),
-    status: ()  => req<SystemStatus>('GET', '/system/status'),
+    health:      () => req<{ status: string }>('GET', '/system/health'),
+    status:      () => req<SystemStatus>('GET', '/system/status'),
+    vram:        () => req<VramStatus>('GET', '/system/vram'),
+    cacheStats:  () => req<{ total_entries: number; entries_with_hits: number }>('GET', '/system/cache'),
+    clearCache:  () => req('DELETE', '/system/cache'),
     startOllama:  () => req('POST', '/system/services/ollama/start'),
     startComfyUI: () => req('POST', '/system/services/comfyui/start'),
   },
@@ -55,6 +58,8 @@ export const api = {
     video:   () => req<ModelInfo[]>('GET', '/models/video'),
     tts:     () => req<ModelInfo[]>('GET', '/models/tts'),
     refresh: () => req('POST', '/models/refresh'),
+    catalog: () => req<ModelCatalog>('GET', '/models/catalog'),
+    installOllama: (id: string) => req<{ pulling: string; message: string }>('POST', `/models/install/ollama/${id}`),
   },
 
   // ── Skills ────────────────────────────────────────────────────────────────
@@ -173,6 +178,33 @@ export interface Skill {
   music_mood: string
   post_processing: string[]
   icon: string
+}
+
+export interface VramStatus {
+  free_mb: number
+  used_mb: number
+  total_mb: number
+  pct_used: number
+}
+
+export interface CatalogModel {
+  id: string
+  name: string
+  type: string
+  vram_required_mb: number
+  size_gb: number
+  quality_tier: string
+  description: string
+  compatible_skills: string[]
+  install_method: string
+  ollama_model?: string
+  hf_repo?: string
+  pip_package?: string
+}
+
+export interface ModelCatalog {
+  version: string
+  models: CatalogModel[]
 }
 
 export interface RenderOpts {

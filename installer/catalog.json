@@ -1,26 +1,31 @@
 {
+  "version": "1.1",
   "models": [
     {
       "id": "wan2.1-1.3b",
-      "name": "Wan2.1 (1.3B)",
+      "name": "Wan2.1 1.3B",
       "type": "video",
       "vram_required_mb": 8192,
       "size_gb": 2.8,
       "quality_tier": "balanced",
-      "description": "Primary video model — balanced quality and speed",
+      "description": "Primary video model — balanced quality and speed. Recommended for 8GB VRAM.",
       "compatible_skills": ["documentary", "explainer", "product", "cinematic", "short", "tutorial", "news"],
-      "download_url": "https://huggingface.co/Wan-AI/Wan2.1-T2V-1.3B"
+      "install_method": "huggingface",
+      "hf_repo": "Wan-AI/Wan2.1-T2V-1.3B",
+      "install_path": "app/runtime/comfyui/models/diffusion_models"
     },
     {
       "id": "wan2.1-14b",
-      "name": "Wan2.1 (14B)",
+      "name": "Wan2.1 14B",
       "type": "video",
       "vram_required_mb": 16384,
       "size_gb": 28.0,
       "quality_tier": "premium",
-      "description": "Premium video model — best quality, requires 16GB+ VRAM",
-      "compatible_skills": ["documentary", "cinematic"],
-      "download_url": "https://huggingface.co/Wan-AI/Wan2.1-T2V-14B"
+      "description": "Premium video model — best quality. Requires 16GB+ VRAM.",
+      "compatible_skills": ["documentary", "cinematic", "product"],
+      "install_method": "huggingface",
+      "hf_repo": "Wan-AI/Wan2.1-T2V-14B",
+      "install_path": "app/runtime/comfyui/models/diffusion_models"
     },
     {
       "id": "ltx-video",
@@ -29,31 +34,59 @@
       "vram_required_mb": 8192,
       "size_gb": 5.1,
       "quality_tier": "fast",
-      "description": "Fast mode — 4x faster than Wan2.1, good for iteration",
+      "description": "Fast mode — 4× faster than Wan2.1, great for iteration and quick previews.",
       "compatible_skills": ["short", "explainer"],
-      "download_url": "https://huggingface.co/Lightricks/LTX-Video"
+      "install_method": "huggingface",
+      "hf_repo": "Lightricks/LTX-Video",
+      "install_path": "app/runtime/comfyui/models/diffusion_models"
     },
     {
       "id": "gemma3-4b",
-      "name": "Gemma 3 (4B)",
+      "name": "Gemma 3 4B",
       "type": "llm",
       "vram_required_mb": 4096,
       "size_gb": 3.2,
       "quality_tier": "balanced",
-      "description": "Recommended LLM for script refinement and scene prompt generation",
+      "description": "Recommended LLM for script refinement and scene prompt generation.",
       "compatible_skills": ["*"],
-      "download_url": "ollama pull gemma3:4b"
+      "install_method": "ollama",
+      "ollama_model": "gemma3:4b"
+    },
+    {
+      "id": "gemma3-1b",
+      "name": "Gemma 3 1B",
+      "type": "llm",
+      "vram_required_mb": 1536,
+      "size_gb": 0.9,
+      "quality_tier": "fast",
+      "description": "Lightweight LLM for low-VRAM systems. Faster but lower script quality.",
+      "compatible_skills": ["short", "explainer", "tutorial"],
+      "install_method": "ollama",
+      "ollama_model": "gemma3:1b"
     },
     {
       "id": "whisper-base",
       "name": "Whisper Base",
       "type": "transcriber",
-      "vram_required_mb": 1024,
+      "vram_required_mb": 512,
       "size_gb": 0.14,
       "quality_tier": "fast",
-      "description": "Subtitle generation via faster-whisper",
+      "description": "Auto-subtitle generation via faster-whisper. Downloads on first use.",
       "compatible_skills": ["explainer", "tutorial", "short", "news"],
-      "download_url": "auto"
+      "install_method": "pip",
+      "pip_package": "faster-whisper"
+    },
+    {
+      "id": "musicgen-small",
+      "name": "MusicGen Small",
+      "type": "music",
+      "vram_required_mb": 2048,
+      "size_gb": 1.5,
+      "quality_tier": "balanced",
+      "description": "AI background music matching skill mood. Requires audiocraft library.",
+      "compatible_skills": ["documentary", "cinematic", "short", "explainer"],
+      "install_method": "pip",
+      "pip_package": "audiocraft"
     }
   ]
 }

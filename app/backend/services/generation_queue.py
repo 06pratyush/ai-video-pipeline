@@ -201,10 +201,16 @@ def _run_pipeline(queue_item_id: str, project_id: str):
                 print(f"[QUEUE] Music generation failed (non-fatal): {e}")
 
         # ── Step 4: Generate video clips ─────────────────────────────
+        # Unload LLM from VRAM before loading video model
+        from app.backend.services import vram_manager, generation_cache
+        vram_manager.prepare_for_video(llm_name)
+        free_vram = vram_manager.get_free_vram_mb()
+
+        skill_resolution = (skill_data.get("resolution", "1080p") if skill_data else "1080p")
+
         scenes = db.query(Scene).filter_by(project_id=project_id).order_by(Scene.index).all()
         workflow_path = "wan_workflow_api.json"
         if not Path(workflow_path).exists():
-            # Try app/workflows/
             alt = Path("app/workflows/wan_workflow_api.json")
             workflow_path = str(alt) if alt.exists() else workflow_path
 
@@ -215,12 +221,35 @@ def _run_pipeline(queue_item_id: str, project_id: str):
         except FileNotFoundError:
             wan = None
 
+        # Smart model routing based on free VRAM
+        model_id, routing_warning = vram_manager.route_video_model("wan2.1-1.3b", free_vram)
+        if routing_warning:
+            _emit(project_id, f"scene_0", 0.29, "running", f"Note: {routing_warning}")
+
         for i, scene in enumerate(scenes):
             if scene.status == "locked" and scene.video_path and Path(scene.video_path).exists():
                 video_clips.append(scene.video_path)
                 continue
+
             prog = 0.3 + (0.4 * i / max(len(scenes), 1))
-            _emit(project_id, f"scene_{i+1}", prog, "running", f"Generating scene {i+1}/{len(scenes)}...")
+
+            # ── Cache check ───────────────────────────────────────────
+            cache_hit = generation_cache.get(
+                scene.prompt or "", scene.seed, model_id, skill_resolution
+            )
+            if cache_hit:
+                dest = str(scenes_dir / f"scene_{i:02d}_cached.mp4")
+                clip_path = generation_cache.copy_cached(cache_hit, dest)
+                scene.video_path = clip_path
+                scene.status = "done"
+                db.commit()
+                video_clips.append(clip_path)
+                _emit(project_id, f"scene_{i+1}", prog, "running",
+                      f"Scene {i+1}/{len(scenes)} — loaded from cache")
+                continue
+
+            _emit(project_id, f"scene_{i+1}", prog, "running",
+                  f"Generating scene {i+1}/{len(scenes)}...")
             if wan is None:
                 scene.status = "error"
                 scene.error_message = "ComfyUI workflow not found"
@@ -236,6 +265,10 @@ def _run_pipeline(queue_item_id: str, project_id: str):
                 scene.status = "done"
                 db.commit()
                 video_clips.append(clip_path)
+                # Store in cache for future runs
+                generation_cache.put(
+                    scene.prompt or "", scene.seed, model_id, skill_resolution, clip_path
+                )
             except Exception as e:
                 scene.status = "error"
                 scene.error_message = str(e)

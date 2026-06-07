@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useProjectStore } from '@/stores/projectStore'
 import { Project } from '@/api/backend'
 
-export default function ProjectLibrary({ onNewProject }: { onNewProject: () => void }) {
+export default function ProjectLibrary({ onNewProject, onOpenModels }: { onNewProject: () => void; onOpenModels: () => void }) {
   const { projects, activeProjectId, setActiveProject, deleteProject } = useProjectStore()
   const [search, setSearch] = useState('')
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
@@ -43,10 +43,16 @@ export default function ProjectLibrary({ onNewProject }: { onNewProject: () => v
         ))}
       </div>
 
-      {/* New project */}
-      <div className="p-3 border-t border-border-subtle">
+      {/* Footer actions */}
+      <div className="p-3 border-t border-border-subtle flex flex-col gap-2">
         <button className="btn-primary w-full text-xs py-2" onClick={onNewProject}>
           + New Project
+        </button>
+        <button
+          className="w-full text-xs py-1.5 text-text-muted hover:text-text-secondary border border-border-subtle hover:border-border-base rounded transition-colors"
+          onClick={onOpenModels}
+        >
+          ⊞ Model Browser
         </button>
       </div>
 

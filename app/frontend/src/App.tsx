@@ -8,9 +8,10 @@ import ScenesGrid     from './components/ScenesGrid'
 import RenderPanel    from './components/RenderPanel'
 import GenerationQueue from './components/GenerationQueue'
 import NewProjectModal from './components/NewProjectModal'
+import ModelBrowser   from './components/ModelBrowser'
 import { useProjectStore } from './stores/projectStore'
 import { useModelStore }   from './stores/modelStore'
-import { SystemStatus }    from './api/backend'
+import { SystemStatus, VramStatus, api } from './api/backend'
 
 type AppState = 'setup' | 'booting' | 'onboarding' | 'main'
 type Tab = 'script' | 'scenes' | 'render'
@@ -39,10 +40,20 @@ export default function App() {
     const api = getElectronAPI()
     return api ? 'setup' : 'booting'
   })
-  const [tab,          setTab]          = useState<Tab>('script')
-  const [showNewModal, setShowNewModal] = useState(false)
+  const [tab,             setTab]             = useState<Tab>('script')
+  const [showNewModal,    setShowNewModal]    = useState(false)
+  const [showModelBrowser, setShowModelBrowser] = useState(false)
+  const [vram,            setVram]            = useState<VramStatus | null>(null)
   const { fetchProjects } = useProjectStore()
   const { systemStatus }  = useModelStore()
+
+  // Poll VRAM every 15s when main app is visible
+  useEffect(() => {
+    const tick = () => api.system.vram().then(setVram).catch(() => {})
+    tick()
+    const id = setInterval(tick, 15_000)
+    return () => clearInterval(id)
+  }, [])
 
   // Listen for Electron's setup:needed signal
   useEffect(() => {
@@ -78,10 +89,13 @@ export default function App() {
 
   return (
     <div className="flex flex-col h-full bg-bg-base text-text-primary">
-      <TitleBar systemStatus={systemStatus} />
+      <TitleBar systemStatus={systemStatus} vram={vram} />
 
       <div className="flex flex-1 min-h-0">
-        <ProjectLibrary onNewProject={() => setShowNewModal(true)} />
+        <ProjectLibrary
+          onNewProject={() => setShowNewModal(true)}
+          onOpenModels={() => setShowModelBrowser(true)}
+        />
 
         <main className="flex-1 flex flex-col min-w-0">
           <div className="flex items-center gap-1 px-4 pt-3 pb-0 border-b border-border-subtle shrink-0">
@@ -99,21 +113,39 @@ export default function App() {
       </div>
 
       <GenerationQueue />
-      {showNewModal && <NewProjectModal onClose={() => setShowNewModal(false)} />}
+      {showNewModal    && <NewProjectModal onClose={() => setShowNewModal(false)} />}
+      {showModelBrowser && <ModelBrowser onClose={() => setShowModelBrowser(false)} />}
     </div>
   )
 }
 
-function TitleBar({ systemStatus }: { systemStatus: SystemStatus | null }) {
+function TitleBar({ systemStatus, vram }: { systemStatus: SystemStatus | null; vram: VramStatus | null }) {
   const hw  = systemStatus?.hardware
   const svc = systemStatus?.services
+  const freePct = vram ? Math.round((vram.free_mb / vram.total_mb) * 100) : null
 
   return (
     <div className="drag-region h-10 flex items-center justify-between px-4 border-b border-border-subtle bg-bg-surface shrink-0">
       <span className="text-sm font-semibold text-text-primary no-drag">AI Video Studio</span>
-      <div className="no-drag flex items-center gap-1.5 text-xs text-text-muted">
-        <span className={`w-1.5 h-1.5 rounded-full ${svc?.ollama.running ? 'bg-success' : 'bg-warning'}`} />
-        <span>{hw ? `${hw.gpu_name.split(' ').slice(-2).join(' ')} · ${hw.vram_total_gb}GB` : 'System'}</span>
+      <div className="no-drag flex items-center gap-3 text-xs text-text-muted">
+        {vram && vram.total_mb > 0 && (
+          <div className="flex items-center gap-1.5">
+            <div className="w-16 h-1.5 bg-bg-muted rounded-full overflow-hidden">
+              <div
+                className="h-full rounded-full transition-all"
+                style={{
+                  width: `${vram.pct_used}%`,
+                  backgroundColor: vram.pct_used > 85 ? 'var(--color-error)' : 'var(--color-accent)',
+                }}
+              />
+            </div>
+            <span className="tabular-nums">{freePct}% free</span>
+          </div>
+        )}
+        <div className="flex items-center gap-1.5">
+          <span className={`w-1.5 h-1.5 rounded-full ${svc?.ollama.running ? 'bg-success' : 'bg-warning'}`} />
+          <span>{hw ? `${hw.gpu_name.split(' ').slice(-2).join(' ')} · ${hw.vram_total_gb}GB` : 'System'}</span>
+        </div>
       </div>
     </div>
   )
