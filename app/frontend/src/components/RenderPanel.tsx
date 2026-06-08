@@ -2,9 +2,9 @@ import { useState } from 'react'
 import { useActiveProject } from '@/stores/projectStore'
 import { useQueueStore } from '@/stores/queueStore'
 import { useModelStore } from '@/stores/modelStore'
-import { RenderOpts } from '@/api/backend'
+import { api, RenderOpts } from '@/api/backend'
 
-export default function RenderPanel() {
+export default function RenderPanel({ onOpenVersions }: { onOpenVersions?: () => void } = {}) {
   const project    = useActiveProject()
   const { skills } = useModelStore()
   const { startGeneration, progress } = useQueueStore()
@@ -34,6 +34,25 @@ export default function RenderPanel() {
 
   const toggle = (key: keyof RenderOpts) =>
     setOpts((o) => ({ ...o, [key]: !o[key] }))
+
+  const handleSaveTemplate = async () => {
+    if (!project) return
+    const name = prompt('Template name:', `${project.name} template`)
+    if (!name) return
+    const description = prompt('Description (optional):') || undefined
+    const includeScript = confirm('Include the current script as a starter? (Cancel = template starts blank)')
+    try {
+      await api.templates.fromProject(project.id, {
+        name,
+        description,
+        include_script: includeScript,
+        render_opts: opts,
+      })
+      alert('Template saved.')
+    } catch (e) {
+      alert('Save failed: ' + e)
+    }
+  }
 
   const handleGenerate = () => startGeneration(project.id, opts)
 
@@ -152,6 +171,22 @@ export default function RenderPanel() {
             <Row label="Audio" value={`${project.audio_duration.toFixed(1)}s`} />
           )}
           <Row label="Status" value={project.status} />
+        </div>
+        <div className="flex gap-2 mt-4 pt-3 border-t border-border-subtle">
+          <button
+            className="flex-1 text-xs py-1.5 text-text-muted hover:text-text-primary border border-border-subtle hover:border-border-base rounded transition-colors"
+            onClick={handleSaveTemplate}
+          >
+            Save as Template
+          </button>
+          {onOpenVersions && (
+            <button
+              className="flex-1 text-xs py-1.5 text-text-muted hover:text-text-primary border border-border-subtle hover:border-border-base rounded transition-colors"
+              onClick={onOpenVersions}
+            >
+              Version History
+            </button>
+          )}
         </div>
       </div>
 

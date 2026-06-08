@@ -21,7 +21,9 @@ def get_db():
 
 
 def init_db():
-    from app.backend.models import project, scene, queue_item, cache_entry  # noqa: F401
+    from app.backend.models import (  # noqa: F401
+        project, scene, queue_item, cache_entry, template, project_version,
+    )
     Base.metadata.create_all(bind=engine)
     _run_migrations()
 

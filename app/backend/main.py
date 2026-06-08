@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.backend.db import init_db
 from app.backend import daemon
-from app.backend.routes import projects, generation, models, skills, system
+from app.backend.routes import projects, generation, models, skills, system, templates, versions, batch
 
 
 @asynccontextmanager
@@ -39,6 +39,9 @@ app.include_router(projects.router)
 app.include_router(generation.router)
 app.include_router(models.router)
 app.include_router(skills.router)
+app.include_router(templates.router)
+app.include_router(versions.router)
+app.include_router(batch.router)
 
 
 @app.get("/")

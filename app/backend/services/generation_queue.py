@@ -370,6 +370,51 @@ def _run_pipeline(queue_item_id: str, project_id: str):
             item.progress = 1.0
         db.commit()
 
+        # ── Auto-snapshot version on successful render ────────────────
+        try:
+            from app.backend.models.project_version import ProjectVersion
+            from pathlib import Path as _Path
+            import shutil as _shutil, uuid as _uuid
+
+            next_num = db.query(ProjectVersion).filter_by(project_id=project_id).count() + 1
+            archived_path = None
+            if _Path(final_path).exists():
+                version_dir = _Path(f"app/projects/{project_id}/versions/v{next_num}")
+                version_dir.mkdir(parents=True, exist_ok=True)
+                archived = version_dir / "final.mp4"
+                _shutil.copy2(final_path, archived)
+                archived_path = str(archived)
+
+            snap_scenes = db.query(Scene).filter_by(project_id=project_id).order_by(Scene.index).all()
+            snapshot = {
+                "name":         project.name,
+                "topic":        project.topic,
+                "script":       project.script,
+                "narration":    project.narration,
+                "skill_id":     project.skill_id,
+                "voice":        project.voice,
+                "num_scenes":   project.num_scenes,
+                "audio_duration": project.audio_duration,
+                "render_opts":  render_opts,
+                "scenes": [
+                    {"index": s.index, "prompt": s.prompt, "seed": s.seed, "status": s.status}
+                    for s in snap_scenes
+                ],
+            }
+            v = ProjectVersion(
+                id=str(_uuid.uuid4()),
+                project_id=project_id,
+                version_num=next_num,
+                label=f"Auto v{next_num}",
+                snapshot=_json.dumps(snapshot),
+                final_path=archived_path,
+                duration=int(project.audio_duration) if project.audio_duration else None,
+            )
+            db.add(v)
+            db.commit()
+        except Exception as e:
+            print(f"[QUEUE] Auto-snapshot failed (non-fatal): {e}")
+
         _emit(project_id, "done", 1.0, "done", "Generation complete!")
 
     except Exception as e:

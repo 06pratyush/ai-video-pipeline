@@ -2,7 +2,14 @@ import { useState } from 'react'
 import { useProjectStore } from '@/stores/projectStore'
 import { Project } from '@/api/backend'
 
-export default function ProjectLibrary({ onNewProject, onOpenModels }: { onNewProject: () => void; onOpenModels: () => void }) {
+export default function ProjectLibrary({
+  onNewProject, onOpenModels, onOpenTemplates, onOpenBatch,
+}: {
+  onNewProject: () => void
+  onOpenModels: () => void
+  onOpenTemplates: () => void
+  onOpenBatch: () => void
+}) {
   const { projects, activeProjectId, setActiveProject, deleteProject } = useProjectStore()
   const [search, setSearch] = useState('')
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
@@ -48,12 +55,11 @@ export default function ProjectLibrary({ onNewProject, onOpenModels }: { onNewPr
         <button className="btn-primary w-full text-xs py-2" onClick={onNewProject}>
           + New Project
         </button>
-        <button
-          className="w-full text-xs py-1.5 text-text-muted hover:text-text-secondary border border-border-subtle hover:border-border-base rounded transition-colors"
-          onClick={onOpenModels}
-        >
-          ⊞ Model Browser
-        </button>
+        <div className="grid grid-cols-2 gap-1.5">
+          <FooterButton label="Templates" onClick={onOpenTemplates} />
+          <FooterButton label="Batch"     onClick={onOpenBatch} />
+        </div>
+        <FooterButton label="⊞ Model Browser" onClick={onOpenModels} />
       </div>
 
       {/* Delete confirm dialog */}
@@ -68,6 +74,17 @@ export default function ProjectLibrary({ onNewProject, onOpenModels }: { onNewPr
         />
       )}
     </aside>
+  )
+}
+
+function FooterButton({ label, onClick }: { label: string; onClick: () => void }) {
+  return (
+    <button
+      className="w-full text-xs py-1.5 text-text-muted hover:text-text-secondary border border-border-subtle hover:border-border-base rounded transition-colors"
+      onClick={onClick}
+    >
+      {label}
+    </button>
   )
 }
 

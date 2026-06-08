@@ -9,6 +9,9 @@ import RenderPanel    from './components/RenderPanel'
 import GenerationQueue from './components/GenerationQueue'
 import NewProjectModal from './components/NewProjectModal'
 import ModelBrowser   from './components/ModelBrowser'
+import TemplateBrowser from './components/TemplateBrowser'
+import BatchModal     from './components/BatchModal'
+import VersionHistory from './components/VersionHistory'
 import { useProjectStore } from './stores/projectStore'
 import { useModelStore }   from './stores/modelStore'
 import { SystemStatus, VramStatus, api } from './api/backend'
@@ -42,7 +45,10 @@ export default function App() {
   })
   const [tab,             setTab]             = useState<Tab>('script')
   const [showNewModal,    setShowNewModal]    = useState(false)
-  const [showModelBrowser, setShowModelBrowser] = useState(false)
+  const [showModelBrowser, setShowModelBrowser]       = useState(false)
+  const [showTemplateBrowser, setShowTemplateBrowser] = useState(false)
+  const [showBatchModal, setShowBatchModal]           = useState(false)
+  const [showVersionHistory, setShowVersionHistory]   = useState(false)
   const [vram,            setVram]            = useState<VramStatus | null>(null)
   const { fetchProjects } = useProjectStore()
   const { systemStatus }  = useModelStore()
@@ -95,6 +101,8 @@ export default function App() {
         <ProjectLibrary
           onNewProject={() => setShowNewModal(true)}
           onOpenModels={() => setShowModelBrowser(true)}
+          onOpenTemplates={() => setShowTemplateBrowser(true)}
+          onOpenBatch={() => setShowBatchModal(true)}
         />
 
         <main className="flex-1 flex flex-col min-w-0">
@@ -107,14 +115,21 @@ export default function App() {
           <div className="flex-1 min-h-0">
             {tab === 'script' && <ScriptEditor />}
             {tab === 'scenes' && <ScenesGrid />}
-            {tab === 'render' && <RenderPanel />}
+            {tab === 'render' && (
+              <RenderPanel
+                onOpenVersions={() => setShowVersionHistory(true)}
+              />
+            )}
           </div>
         </main>
       </div>
 
       <GenerationQueue />
-      {showNewModal    && <NewProjectModal onClose={() => setShowNewModal(false)} />}
-      {showModelBrowser && <ModelBrowser onClose={() => setShowModelBrowser(false)} />}
+      {showNewModal        && <NewProjectModal onClose={() => setShowNewModal(false)} />}
+      {showModelBrowser    && <ModelBrowser    onClose={() => setShowModelBrowser(false)} />}
+      {showTemplateBrowser && <TemplateBrowser onClose={() => setShowTemplateBrowser(false)} />}
+      {showBatchModal      && <BatchModal      onClose={() => setShowBatchModal(false)} />}
+      {showVersionHistory  && <VersionHistory  onClose={() => setShowVersionHistory(false)} />}
     </div>
   )
 }

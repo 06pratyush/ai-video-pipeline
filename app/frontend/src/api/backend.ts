@@ -67,6 +67,43 @@ export const api = {
     list: () => req<Skill[]>('GET', '/skills/'),
     get:  (id: string) => req<Skill>('GET', `/skills/${id}`),
   },
+
+  // ── Templates ─────────────────────────────────────────────────────────────
+  templates: {
+    list:    () => req<Template[]>('GET', '/templates/'),
+    get:     (id: string) => req<Template>('GET', `/templates/${id}`),
+    create:  (data: TemplateCreate) => req<Template>('POST', '/templates/', data),
+    update:  (id: string, data: Partial<TemplateCreate>) =>
+      req<Template>('PATCH', `/templates/${id}`, data),
+    delete:  (id: string) => req('DELETE', `/templates/${id}`),
+    fromProject: (projectId: string, payload: { name: string; description?: string; include_script?: boolean; render_opts?: RenderOpts }) =>
+      req<Template>('POST', `/templates/from-project/${projectId}`, payload),
+    apply:   (id: string, payload: { project_name: string; topic: string; script?: string }) =>
+      req<{ project: Project; template_render_opts: RenderOpts | null }>('POST', `/templates/${id}/apply`, payload),
+  },
+
+  // ── Versions ──────────────────────────────────────────────────────────────
+  versions: {
+    list:   (projectId: string) => req<ProjectVersion[]>('GET', `/projects/${projectId}/versions/`),
+    create: (projectId: string, label?: string) =>
+      req<ProjectVersion>('POST', `/projects/${projectId}/versions/`, { label }),
+    restore: (projectId: string, versionId: string) =>
+      req<{ restored: number }>('POST', `/projects/${projectId}/versions/${versionId}/restore`),
+    delete: (projectId: string, versionId: string) =>
+      req('DELETE', `/projects/${projectId}/versions/${versionId}`),
+  },
+
+  // ── Batch ─────────────────────────────────────────────────────────────────
+  batch: {
+    create: (items: BatchItem[], opts?: { template_id?: string; render_opts?: RenderOpts }) =>
+      req<{ batch_size: number; items: { project_id: string; queue_item_id: string; name: string }[] }>(
+        'POST', '/batch/',
+        { items, template_id: opts?.template_id, render_opts: opts?.render_opts },
+      ),
+    status: () => req<{ queue_item_id: string; project_id: string; stage: string; status: string; progress: number }[]>(
+      'GET', '/batch/',
+    ),
+  },
 }
 
 // ── WebSocket progress ────────────────────────────────────────────────────────
@@ -212,6 +249,64 @@ export interface RenderOpts {
   music: boolean
   interpolation: boolean
   upscaling: boolean
+}
+
+export interface Template {
+  id: string
+  name: string
+  description: string | null
+  skill_id: string | null
+  voice: string
+  num_scenes: number
+  script_seed: string | null
+  render_opts: RenderOpts | null
+  source_project_id: string | null
+  use_count: number
+  created_at: string
+  updated_at: string
+}
+
+export interface TemplateCreate {
+  name: string
+  description?: string
+  skill_id?: string | null
+  voice?: string
+  num_scenes?: number
+  script_seed?: string
+  render_opts?: RenderOpts | null
+  source_project_id?: string
+}
+
+export interface ProjectVersion {
+  id: string
+  project_id: string
+  version_num: number
+  label: string | null
+  snapshot: {
+    name?: string
+    topic?: string
+    script?: string
+    narration?: string | null
+    skill_id?: string | null
+    voice?: string
+    num_scenes?: number
+    audio_duration?: number | null
+    render_opts?: RenderOpts
+    scenes?: { index: number; prompt: string; seed: number | null; status: string }[]
+  }
+  final_path: string | null
+  thumbnail: string | null
+  duration: number | null
+  created_at: string
+}
+
+export interface BatchItem {
+  name: string
+  topic: string
+  script: string
+  voice?: string
+  num_scenes?: number
+  skill_id?: string | null
 }
 
 export interface ProgressMessage {
