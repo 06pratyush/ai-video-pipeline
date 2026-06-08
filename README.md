@@ -2,7 +2,7 @@
 
 <img src="https://img.shields.io/badge/AI%20VIDEO%20STUDIO-1.0.0-6366f1?style=for-the-badge&labelColor=0a0a0b" alt="AI Video Studio v1.0.0" />
 
-# 🎬 AI Video Studio
+# AI Video Studio
 
 ### Generate cinematic videos from text — fully local, fully autonomous, fully yours.
 
@@ -22,23 +22,23 @@ Your machine is the only computer in the loop.*
 
 <br>
 
-[**📥 Download**](https://github.com/06pratyush/ai-video-pipeline/releases/latest) &nbsp;·&nbsp;
-[**🚀 Quick Start**](#-quick-start) &nbsp;·&nbsp;
-[**🎨 Skills**](#-skills) &nbsp;·&nbsp;
-[**⚙️ Architecture**](#-architecture) &nbsp;·&nbsp;
-[**🐛 Issues**](https://github.com/06pratyush/ai-video-pipeline/issues)
+[**Download**](https://github.com/06pratyush/ai-video-pipeline/releases/latest) &nbsp;·&nbsp;
+[**Quick Start**](#quick-start) &nbsp;·&nbsp;
+[**Skills**](#skills) &nbsp;·&nbsp;
+[**Architecture**](#architecture) &nbsp;·&nbsp;
+[**Issues**](https://github.com/06pratyush/ai-video-pipeline/issues)
 
 </div>
 
 ---
 
-## ✨ Highlights
+## Highlights
 
 <table>
 <tr>
 <td width="33%" valign="top">
 
-### 🔒 Local-First
+### Local-First
 Everything runs on your machine.  
 No telemetry, no cloud calls,  
 no usage tracking, ever.
@@ -46,7 +46,7 @@ no usage tracking, ever.
 </td>
 <td width="33%" valign="top">
 
-### ⚡ Five-Click Workflow
+### Five-Click Workflow
 Paste script → pick Skill →  
 toggle quality → hit Generate →  
 download finished MP4.
@@ -54,7 +54,7 @@ download finished MP4.
 </td>
 <td width="33%" valign="top">
 
-### 🎨 7 Built-in Skills
+### 7 Built-in Skills
 Documentary · Cinematic ·  
 Social Short · Explainer ·  
 Product · Tutorial · News
@@ -64,7 +64,7 @@ Product · Tutorial · News
 <tr>
 <td width="33%" valign="top">
 
-### 🧠 Smart VRAM Routing
+### Smart VRAM Routing
 Auto-downgrades when GPU is full.  
 Live VRAM meter in the title bar.  
 Sequential model lifecycle.
@@ -72,7 +72,7 @@ Sequential model lifecycle.
 </td>
 <td width="33%" valign="top">
 
-### 📚 Templates & Batch
+### Templates & Batch
 Save reusable configs.  
 Queue 10 projects overnight.  
 Auto-versioning per render.
@@ -80,7 +80,7 @@ Auto-versioning per render.
 </td>
 <td width="33%" valign="top">
 
-### 🎞️ Pro Quality Layer
+### Pro Quality Layer
 Whisper subtitles · MusicGen score  
 30fps interpolation · 2× upscaling  
 Cinematic color grading
@@ -91,7 +91,7 @@ Cinematic color grading
 
 ---
 
-## 🎯 What it does
+## What it does
 
 Write a script. Pick a Skill. Hit Generate. Five to fifteen minutes later you have a finished MP4 with narration, visuals, music, subtitles, and color grading — ready to post.
 
@@ -103,23 +103,23 @@ Write a script. Pick a Skill. Hit Generate. Five to fifteen minutes later you ha
    ╔═════════▼══════════════════════════════════════════════════════╗
    ║  THE PIPELINE                                                  ║
    ║  ────────────                                                  ║
-   ║   📝  Gemma (Ollama)        refines narration + scene prompts  ║
-   ║   🎙️  Kokoro TTS            synthesizes voice audio            ║
-   ║   🎬  Wan2.1 (ComfyUI)      generates clips on your GPU        ║
-   ║   🎵  MusicGen              composes background music          ║
-   ║   💬  Whisper               transcribes → burned-in subtitles  ║
-   ║   ⚡  minterpolate / RIFE   30fps frame interpolation          ║
-   ║   📈  super2xbr / ESRGAN    2× upscale to 1080p                ║
-   ║   🎨  FFmpeg                color grade, film grain, mux       ║
+   ║   [1]  Gemma (Ollama)        refines narration + scene prompts ║
+   ║   [2]  Kokoro TTS            synthesizes voice audio           ║
+   ║   [3]  Wan2.1 (ComfyUI)      generates clips on your GPU       ║
+   ║   [4]  MusicGen              composes background music         ║
+   ║   [5]  Whisper               transcribes -> burned-in subs     ║
+   ║   [6]  minterpolate / RIFE   30fps frame interpolation         ║
+   ║   [7]  super2xbr / ESRGAN    2x upscale to 1080p               ║
+   ║   [8]  FFmpeg                color grade, film grain, mux      ║
    ╚═════════╤══════════════════════════════════════════════════════╝
              ▼
    ┌───────────────────┐
-   │   final.mp4  🎞️   │
+   │    final.mp4      │
    └───────────────────┘
 ```
 
 <details>
-<summary><b>📊 What runs at each stage</b></summary>
+<summary><b>What runs at each stage</b></summary>
 
 | Stage | Tool | When | Cost |
 |-------|------|------|------|
@@ -137,26 +137,26 @@ Write a script. Pick a Skill. Hit Generate. Five to fifteen minutes later you ha
 
 ---
 
-## 📦 Install
+## Install
 
 <table>
 <tr>
 <td width="50%" valign="top">
 
-### 🪟 **Windows**
+### Windows
 NSIS installer or portable .exe
 ```
 AI-Video-Studio-1.0.0-x64.exe
 ```
 
-### 🐧 **Linux**
+### Linux
 AppImage (universal) or .deb
 ```
 AI-Video-Studio-1.0.0-x64.AppImage
 AI-Video-Studio-1.0.0-x64.deb
 ```
 
-### 🍎 **macOS**
+### macOS
 DMG for Apple Silicon or Intel
 ```
 AI-Video-Studio-1.0.0-arm64.dmg
@@ -166,7 +166,7 @@ AI-Video-Studio-1.0.0-x64.dmg
 </td>
 <td width="50%" valign="top">
 
-### ⏱️ First-launch timeline
+### First-launch timeline
 
 ```
 00:00  ░░░░░░░░░░░░░░░░░░░░  Python + venv setup
@@ -174,7 +174,7 @@ AI-Video-Studio-1.0.0-x64.dmg
 06:00  ████████░░░░░░░░░░░░  ComfyUI clone + deps
 10:00  ████████████░░░░░░░░  Wan2.1 model download
 14:00  ████████████████░░░░  Ollama LLM pull
-17:00  ████████████████████  Ready! 🎉
+17:00  ████████████████████  Ready
 ```
 
 After that, each video render takes **5–15 minutes**.
@@ -184,7 +184,7 @@ After that, each video render takes **5–15 minutes**.
 </table>
 
 <details>
-<summary><b>🔧 Build from source instead</b></summary>
+<summary><b>Build from source instead</b></summary>
 
 ```bash
 git clone https://github.com/06pratyush/ai-video-pipeline.git
@@ -203,22 +203,22 @@ The launcher checks for Python 3.10+ and Node.js 18+, then runs the same bootstr
 
 ---
 
-## 💻 System Requirements
+## System Requirements
 
-|                | 🟡 Minimum                | 🟢 Recommended            |
+|                | Minimum                    | Recommended                |
 |----------------|----------------------------|----------------------------|
-| 🎮 **GPU**     | NVIDIA · 8 GB VRAM · Wan2.1 1.3B | NVIDIA · 16 GB+ VRAM · Wan2.1 14B |
-| 🧠 **RAM**     | 16 GB                      | 32 GB                      |
-| 💾 **Disk**    | 30 GB free                 | 100 GB free                |
-| 🖥️ **OS**      | Win 10 · Ubuntu 22.04 · macOS 12 | Win 11 · Ubuntu 24.04 · macOS 14 |
-| 🐍 **Python**  | 3.10                       | 3.11                       |
-| 📗 **Node.js** | 18 LTS                     | 20 LTS                     |
+| **GPU**        | NVIDIA · 8 GB VRAM · Wan2.1 1.3B | NVIDIA · 16 GB+ VRAM · Wan2.1 14B |
+| **RAM**        | 16 GB                      | 32 GB                      |
+| **Disk**       | 30 GB free                 | 100 GB free                |
+| **OS**         | Win 10 · Ubuntu 22.04 · macOS 12 | Win 11 · Ubuntu 24.04 · macOS 14 |
+| **Python**     | 3.10                       | 3.11                       |
+| **Node.js**    | 18 LTS                     | 20 LTS                     |
 
 CPU-only mode runs but is very slow (~10× slower than CUDA). AMD GPUs aren't currently supported by Wan2.1 — track [this issue](https://github.com/Wan-AI/Wan2.1/issues) for ROCm progress.
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 After installation, the app shows a five-step onboarding card. Dismiss it and:
 
@@ -228,46 +228,46 @@ After installation, the app shows a five-step onboarding card. Dismiss it and:
 4. **Switch to Render tab** and toggle the quality options you want (subtitles, music, frame interpolation, upscaling)
 5. **Hit Generate Video** — the queue strip at the bottom shows live progress through 8 stages
 
-When the render finishes, click `⬇ Download MP4` to save it, or `Show in folder` to open the output directory.
+When the render finishes, click `Download MP4` to save it, or `Show in folder` to open the output directory.
 
 ---
 
-## 🎨 Skills
+## Skills
 
 A Skill is a preset that determines the entire look and feel of the output. The default pack ships seven:
 
 | Skill | Voice | Pacing | Aspect | Best For |
 |-------|-------|--------|--------|----------|
-| 🎥 **Documentary**     | 🇬🇧 George | 🐢 Slow   | 16:9 | Long-form narration, nature, history |
-| 💡 **Explainer**       | 🇺🇸 Sarah  | 🚶 Medium | 16:9 | Concept videos, tutorials |
-| 📦 **Product Showcase** | 🇺🇸 Michael | 🚶 Medium | 1:1  | Marketing, demos |
-| 🎬 **Cinematic Story** | 🇬🇧 George | 🐢 Slow   | 16:9 | Storytelling, dramatic content |
-| 📱 **Social Short**    | 🇺🇸 Heart  | 🏃 Fast   | 9:16 | TikTok, Reels, Shorts |
-| 📚 **Tutorial**        | 🇺🇸 Nicole | 🚶 Medium | 16:9 | How-to content |
-| 📰 **News Brief**      | 🇺🇸 Adam   | 🏃 Fast   | 16:9 | News updates, recaps |
+| **Documentary**     | George (British male)   | Slow   | 16:9 | Long-form narration, nature, history |
+| **Explainer**       | Sarah (American female) | Medium | 16:9 | Concept videos, tutorials |
+| **Product Showcase** | Michael (American male) | Medium | 1:1  | Marketing, demos |
+| **Cinematic Story** | George (British male)   | Slow   | 16:9 | Storytelling, dramatic content |
+| **Social Short**    | Heart (American female) | Fast   | 9:16 | TikTok, Reels, Shorts |
+| **Tutorial**        | Nicole (American female) | Medium | 16:9 | How-to content |
+| **News Brief**      | Adam (American male)    | Fast   | 16:9 | News updates, recaps |
 
 Each Skill bundles a prompt template, voice + speed, scene pacing hint, music mood, and post-processing chain (color grade, film grain, letterbox). Custom Skills are JSON files in `app/skills/` — duplicate one to make your own.
 
-> 💡 **Pro tip:** Pick a Skill that matches your target platform. Social Short auto-formats for vertical mobile with subtitles enabled; Documentary applies cinematic letterbox bars and slow pacing.
+> **Pro tip:** Pick a Skill that matches your target platform. Social Short auto-formats for vertical mobile with subtitles enabled; Documentary applies cinematic letterbox bars and slow pacing.
 
 ---
 
-## ⚙️ Quality Settings
+## Quality Settings
 
 The Render tab exposes four toggles independent of the Skill:
 
 | Toggle | Backend Module | Cost |
 |--------|----------------|------|
-| 💬 **Subtitles**          | faster-whisper transcription → FFmpeg subtitle burn | ~10s per minute of audio |
-| 🎵 **Background Music**   | MusicGen mood-matched composition + auto-ducking mix | ~30s per scene |
-| ⚡ **Frame Interpolation** | FFmpeg minterpolate (RIFE-compatible swap-in) | +30% render time |
-| 📈 **Upscaling**          | FFmpeg super2xbr+lanczos (Real-ESRGAN swap-in) | +20% render time |
+| **Subtitles**          | faster-whisper transcription → FFmpeg subtitle burn | ~10s per minute of audio |
+| **Background Music**   | MusicGen mood-matched composition + auto-ducking mix | ~30s per scene |
+| **Frame Interpolation** | FFmpeg minterpolate (RIFE-compatible swap-in) | +30% render time |
+| **Upscaling**          | FFmpeg super2xbr+lanczos (Real-ESRGAN swap-in) | +20% render time |
 
 Skills auto-enable some toggles by default (e.g. Social Short turns on subtitles because mobile viewers watch muted).
 
 ---
 
-## 📚 Templates, Versions, Batch
+## Templates, Versions, Batch
 
 After your first successful render, three workflow accelerators become useful:
 
@@ -275,7 +275,7 @@ After your first successful render, three workflow accelerators become useful:
 <tr>
 <td width="33%" valign="top" align="center">
 
-### 📋 Templates
+### Templates
 
 Save reusable presets with skill, voice, scenes, quality settings.  
 Apply with two clicks.
@@ -283,7 +283,7 @@ Apply with two clicks.
 </td>
 <td width="33%" valign="top" align="center">
 
-### 🕘 Version History
+### Version History
 
 Every render auto-snapshots script + prompts + final MP4.  
 Restore any earlier version.
@@ -291,7 +291,7 @@ Restore any earlier version.
 </td>
 <td width="33%" valign="top" align="center">
 
-### 🔁 Batch Generation
+### Batch Generation
 
 Queue 10 projects at once.  
 Optionally apply one template to all.  
@@ -303,28 +303,28 @@ Renders sequentially overnight.
 
 ---
 
-## ⚙️ Architecture
+## Architecture
 
 Three-tier system designed so each layer can evolve independently:
 
 ```
 ╔══════════════════════════════════════════════════════════════╗
-║  🖥️  ELECTRON FRONTEND      React 18 · Vite · Zustand · TW   ║
-║  ──────────────────────                                      ║
-║  • Project library · script editor · render panel            ║
-║  • Real-time WebSocket progress · live VRAM meter            ║
-║  • Model browser · template browser · batch modal            ║
+║   ELECTRON FRONTEND        React 18 · Vite · Zustand · TW    ║
+║   ─────────────────                                          ║
+║   • Project library · script editor · render panel           ║
+║   • Real-time WebSocket progress · live VRAM meter           ║
+║   • Model browser · template browser · batch modal           ║
 ╚════════════════════════════╤═════════════════════════════════╝
                              │   REST + WebSocket
                              │   http://localhost:7860
                              ▼
 ╔══════════════════════════════════════════════════════════════╗
-║  🐍 PYTHON BACKEND DAEMON   FastAPI · SQLAlchemy · uvicorn   ║
-║  ──────────────────────                                      ║
-║  • Generation queue (SQLite persistence, survives restarts)  ║
-║  • VRAM-aware model lifecycle, smart fallback routing        ║
-║  • Scene cache (sha256 of prompt+seed+model+resolution)      ║
-║  • 11 REST routes · 1 WebSocket · auto-update checker        ║
+║   PYTHON BACKEND DAEMON    FastAPI · SQLAlchemy · uvicorn    ║
+║   ────────────────────                                       ║
+║   • Generation queue (SQLite persistence, survives restarts) ║
+║   • VRAM-aware model lifecycle, smart fallback routing       ║
+║   • Scene cache (sha256 of prompt+seed+model+resolution)     ║
+║   • 11 REST routes · 1 WebSocket · auto-update checker       ║
 ╚═══════╤═══════════════════╤══════════════════╤═══════════════╝
         ▼                   ▼                  ▼
    ┌─────────┐         ┌─────────┐         ┌─────────┐
@@ -340,47 +340,47 @@ Three-tier system designed so each layer can evolve independently:
 The frontend talks to the backend only via REST + WebSocket on `localhost:7860`. All ML work happens in Python. The Electron shell is purely a presentation layer.
 
 <details>
-<summary><b>📂 Repository layout</b></summary>
+<summary><b>Repository layout</b></summary>
 
 ```
 ai-video-pipeline/
 │
-├── 🚀 start.bat / start.sh       ← platform launchers
-├── 📖 README.md
-├── 📜 LICENSE
+├── start.bat / start.sh         ← platform launchers
+├── README.md
+├── LICENSE
 │
-├── 📦 installer/
-│   ├── bootstrap.py              ← first-run dependency installer
+├── installer/
+│   ├── bootstrap.py             ← first-run dependency installer
 │   ├── system_check.py
-│   └── catalog.json              ← available models metadata
+│   └── catalog.json             ← available models metadata
 │
-└── 🎬 app/
-    ├── backend/                  ← FastAPI daemon (Python)
+└── app/
+    ├── backend/                 ← FastAPI daemon (Python)
     │   ├── main.py, daemon.py, db.py, version.py
-    │   ├── routes/               ← 11 REST endpoints
-    │   ├── services/             ← queue, cache, VRAM, registry
-    │   ├── pipeline/             ← Gemma, Kokoro, Wan, Whisper, MusicGen,
-    │   │                            XTTS, RIFE, ESRGAN, FFmpeg
-    │   └── models/               ← SQLAlchemy ORM
+    │   ├── routes/              ← 11 REST endpoints
+    │   ├── services/            ← queue, cache, VRAM, registry
+    │   ├── pipeline/            ← Gemma, Kokoro, Wan, Whisper, MusicGen,
+    │   │                           XTTS, RIFE, ESRGAN, FFmpeg
+    │   └── models/              ← SQLAlchemy ORM
     │
-    ├── frontend/                 ← Electron + React + Vite
+    ├── frontend/                ← Electron + React + Vite
     │   ├── electron/main.ts + preload.ts
-    │   └── src/components/       ← React UI
+    │   └── src/components/      ← React UI
     │
-    ├── runtime/                  ← created at first launch
-    │   ├── python/               ← bundled venv
-    │   ├── comfyui/              ← cloned ComfyUI
-    │   └── models/               ← downloaded weights
+    ├── runtime/                 ← created at first launch
+    │   ├── python/              ← bundled venv
+    │   ├── comfyui/             ← cloned ComfyUI
+    │   └── models/              ← downloaded weights
     │
-    ├── skills/                   ← 7 JSON Skill presets
-    └── projects/                 ← user projects per-id
+    ├── skills/                  ← 7 JSON Skill presets
+    └── projects/                ← user projects per-id
 ```
 
 </details>
 
 ---
 
-## 🛠️ Build from source
+## Build from source
 
 Build the desktop installers yourself if you don't want to use the GitHub releases:
 
@@ -397,7 +397,7 @@ Artifacts land in `app/frontend/release/`. Code signing requires the matching ho
 
 ---
 
-## 🐛 Troubleshooting
+## Troubleshooting
 
 **Setup screen stalls on PyTorch install**  
 Slow disk + 2.5GB download. Check the log viewer at the bottom of the setup screen. If it's been more than 20 minutes, retry from the setup screen's retry button.
@@ -421,7 +421,7 @@ Open an issue on GitHub if you hit a symptom not covered above — include OS, G
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
 Contributions welcome — especially:
 
@@ -439,17 +439,15 @@ Process:
 3. Run `npm run typecheck` in `app/frontend/` and ensure the backend boots with `python -m uvicorn app.backend.main:app`
 4. Include a brief test plan in the PR description
 
-Run `npm run typecheck` in `app/frontend/` and ensure the backend boots with `python -m uvicorn app.backend.main:app` before opening a PR.
-
 ---
 
-## 📜 License
+## License
 
 [MIT](LICENSE) — use it, modify it, distribute it freely. Attribution appreciated but not required.
 
 ---
 
-## 🙏 Acknowledgements
+## Acknowledgements
 
 Built on the shoulders of these excellent open-source projects:
 
@@ -457,7 +455,7 @@ Built on the shoulders of these excellent open-source projects:
 <tr>
 <td valign="top" width="50%">
 
-**🎬 AI Models**
+**AI Models**
 - [Wan2.1](https://github.com/Wan-AI/Wan2.1) · text-to-video
 - [Gemma](https://ai.google.dev/gemma) · LLM for script work
 - [Kokoro TTS](https://github.com/hexgrad/kokoro) · text-to-speech
@@ -468,7 +466,7 @@ Built on the shoulders of these excellent open-source projects:
 </td>
 <td valign="top" width="50%">
 
-**🏗️ Runtime & Frameworks**
+**Runtime & Frameworks**
 - [ComfyUI](https://github.com/comfyanonymous/ComfyUI) · diffusion node runtime
 - [Ollama](https://ollama.com) · local LLM serving
 - [FFmpeg](https://ffmpeg.org) · multimedia framework
@@ -484,20 +482,20 @@ Built on the shoulders of these excellent open-source projects:
 
 <div align="center">
 
-### 🎬 *Built for creators who want full control over their AI content pipeline.*
+### *Built for creators who want full control over their AI content pipeline.*
 
 **No subscriptions · No rate limits · No data leaving your machine.**
 
 <br>
 
 <sub>
-⭐ <a href="https://github.com/06pratyush/ai-video-pipeline/stargazers">Star this repo</a> if it's useful ·
-🐛 <a href="https://github.com/06pratyush/ai-video-pipeline/issues">Report an issue</a> ·
-💬 <a href="https://github.com/06pratyush/ai-video-pipeline/discussions">Discuss</a>
+<a href="https://github.com/06pratyush/ai-video-pipeline/stargazers">Star this repo</a> if it's useful ·
+<a href="https://github.com/06pratyush/ai-video-pipeline/issues">Report an issue</a> ·
+<a href="https://github.com/06pratyush/ai-video-pipeline/discussions">Discuss</a>
 </sub>
 
 <br><br>
 
-<sub>Made with 💜 · Released under the MIT License · v1.0.0</sub>
+<sub>Released under the MIT License · v1.0.0</sub>
 
 </div>
