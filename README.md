@@ -1,360 +1,254 @@
-# AI Video Pipeline
+# AI Video Studio
 
-> Generate fully narrated AI videos from a text script — locally, for free, with no cloud dependency.
+> Generate cinematic videos from text — fully local, fully autonomous, fully yours.
 
-Give it a script. It refines the narration with **Gemma**, synthesizes a voice with **Kokoro TTS**, generates cinematic video clips with **Wan2.1**, and stitches everything into a platform-ready MP4 using **FFmpeg** — all running on your own machine.
+A desktop application that turns scripts into narrated, professionally-edited videos using local AI models. No cloud, no subscriptions, no API keys. Your machine is the only computer in the loop.
 
----
-
-## Demo Output
-
-```
-Input  : "Artificial intelligence is reshaping how we create content..."
-Output : outputs/final/ai_introduction_instagram.mp4  (24.7 MB, 30 sec)
-         outputs/final/ai_introduction_youtube.mp4    (48.2 MB, 30 sec)
-```
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![Electron](https://img.shields.io/badge/electron-31-47848f.svg)](https://www.electronjs.org/)
+[![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey.svg)]()
 
 ---
 
-## How It Works
+## What it does
+
+Write a script. Pick a Skill. Hit Generate. Five to fifteen minutes later you have a finished MP4 with narration, visuals, music, subtitles, and color grading — ready to post.
 
 ```
-Your Script (.txt)
-      │
-      ▼
- [Gemma via Ollama]       ← refines narration, generates scene-by-scene video prompts
-      │
-      ▼
- [Kokoro TTS]             ← converts narration to natural-sounding voice audio (.wav)
-      │
-      ▼
- [Wan2.1 via ComfyUI]     ← generates video clips from prompts (runs on your GPU)
-      │
-      ▼
- [FFmpeg]                 ← merges video + audio, exports for Instagram / YouTube
-      │
-      ▼
- Final MP4
+Your script
+   │
+   ├─ Gemma (Ollama)      ── refines narration + writes scene prompts
+   ├─ Kokoro TTS          ── synthesizes voice audio
+   ├─ Wan2.1 (ComfyUI)    ── generates video clips on your GPU
+   ├─ MusicGen            ── composes background music (optional)
+   ├─ Whisper             ── transcribes for burned-in subtitles (optional)
+   ├─ minterpolate / RIFE ── interpolates to smooth 30fps (optional)
+   ├─ super2xbr / ESRGAN  ── upscales to 1080p (optional)
+   └─ FFmpeg              ── color grade, letterbox, film grain, final mux
+        │
+        ▼
+   final.mp4
 ```
 
 ---
 
-## Features
+## Install
 
-- **Fully local** — no API keys, no cloud services, no usage fees
-- **Gemma-powered scriptwriting** — automatically refines your raw notes into clean narration and generates detailed cinematic prompts per scene
-- **Natural voice synthesis** — Kokoro TTS with 8 voice options (American/British, male/female)
-- **AI video generation** — Wan2.1 produces high-quality short clips from text prompts
-- **Platform-ready export** — automatic formatting for Instagram Reels (1080×1920) and YouTube (1920×1080)
-- **Fully scriptable** — single command runs the entire pipeline end to end
-- **Modular design** — each component (TTS, video, merge) is an independent module you can swap out
+### Option A — Download a release (recommended)
 
----
+Grab the installer for your platform from the [Releases page](https://github.com/06pratyush/ai-video-pipeline/releases):
 
-## Prerequisites
+| Platform | File |
+|----------|------|
+| Windows  | `AI-Video-Studio-1.0.0-x64.exe` (NSIS installer) or `AI-Video-Studio-1.0.0-x64.exe` (portable) |
+| Linux    | `AI-Video-Studio-1.0.0-x64.AppImage` or `.deb` |
+| macOS    | `AI-Video-Studio-1.0.0-arm64.dmg` (Apple Silicon) or `x64.dmg` (Intel) |
 
-Before installing this project, you need three external tools set up:
+On first launch, the app detects your hardware, downloads the right models for your GPU tier, and gets you to a working state in 10–20 minutes. After that, video generation takes ~5–15 minutes per project depending on scene count and quality settings.
 
-| Tool | Purpose | Install |
-|------|---------|---------|
-| **Ollama** | Runs Gemma locally | https://ollama.com |
-| **ComfyUI + Wan2.1** | Runs the video generation model | https://github.com/comfyanonymous/ComfyUI |
-| **FFmpeg** | Merges video and audio | https://ffmpeg.org/download.html |
-| **espeak-ng** | Required by Kokoro TTS | https://github.com/espeak-ng/espeak-ng/releases |
-
-**GPU:** NVIDIA GPU with 8GB+ VRAM required for Wan2.1.  
-**Python:** 3.11 recommended.
-
----
-
-## Installation
-
-### 1. Clone the Repository
+### Option B — Clone and run from source
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/ai-video-pipeline.git
+git clone https://github.com/06pratyush/ai-video-pipeline.git
 cd ai-video-pipeline
-```
 
-### 2. Create Virtual Environment
-
-```bash
 # Windows
-python -m venv venv311
-venv311\Scripts\activate
+start.bat
 
-# Linux / Mac
-python -m venv venv311
-source venv311/bin/activate
+# Linux / macOS
+./start.sh
 ```
 
-### 3. Install Python Dependencies
-
-```bash
-pip install -r requirements.txt
-```
-
-Or manually:
-
-```bash
-pip install requests
-pip install kokoro>=0.9.4
-pip install soundfile
-pip install numpy
-pip install websocket-client
-pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
-```
-
-> Note: For PyTorch, select the correct CUDA version for your GPU at https://pytorch.org/get-started/locally/
-
-### 4. Pull Your Gemma Model via Ollama
-
-```bash
-ollama pull gemma3
-# or whichever model you want to use
-```
-
-### 5. Set Up ComfyUI + Wan2.1
-
-Follow the detailed setup guide in [`docs/comfyui_setup.md`](docs/comfyui_setup.md) — covers model download, custom node installation, and workflow export.
-
-### 6. Export Your ComfyUI Workflow
-
-1. Open `http://localhost:8188` in your browser
-2. Load your Wan2.1 workflow
-3. Press `Ctrl + Shift + Q` to switch to API format
-4. Press `Ctrl + S` to save
-5. Rename the downloaded file to `wan_workflow_api.json`
-6. Place it in the root of this project folder
-
-> This file is machine-specific and is excluded from version control via `.gitignore`.
+The launcher checks for Python 3.10+ and Node.js 18+, then runs the same bootstrap process as the installer.
 
 ---
 
-## Configuration
+## System Requirements
 
-Open `orchestrator.py` and update these values at the top to match your setup:
+|              | Minimum                    | Recommended                |
+|--------------|----------------------------|----------------------------|
+| **GPU**      | NVIDIA, 8 GB VRAM (Wan2.1 1.3B) | NVIDIA, 16 GB+ VRAM (Wan2.1 14B) |
+| **RAM**      | 16 GB                      | 32 GB                      |
+| **Disk**     | 30 GB free                 | 100 GB free                |
+| **OS**       | Windows 10, Ubuntu 22.04, macOS 12 | Windows 11, Ubuntu 24.04, macOS 14 |
+| **Python**   | 3.10                       | 3.11                       |
+| **Node.js**  | 18 LTS                     | 20 LTS                     |
 
-```python
-OLLAMA_URL  = "http://localhost:11434"   # Ollama address (default)
-GEMMA_MODEL = "gemma3"                   # Must match your ollama list output
-```
-
-To check your exact model name:
-```bash
-ollama list
-```
-
----
-
-## Usage
-
-### Start Required Services
-
-You need three terminals running before using the pipeline.
-
-**Terminal 1 — Ollama:**
-```bash
-ollama serve
-```
-
-**Terminal 2 — ComfyUI:**
-```bash
-cd path/to/ComfyUI
-venv\Scripts\activate        # Windows
-python main.py --listen 0.0.0.0 --port 8188
-```
-
-**Terminal 3 — Pipeline:**
-```bash
-cd ai-video-pipeline
-venv311\Scripts\activate     # Windows
-```
-
-### Run the Pipeline
-
-**Basic usage:**
-```bash
-python orchestrator.py --script scripts/ai_intro.txt --topic "AI Introduction"
-```
-
-**Full options:**
-```bash
-python orchestrator.py \
-  --script scripts/ai_intro.txt \
-  --topic "AI Introduction" \
-  --voice af_sarah \
-  --scenes 2 \
-  --target instagram
-```
-
-**All in one line (Windows PowerShell):**
-```powershell
-python orchestrator.py --script scripts\ai_intro.txt --topic "AI Introduction" --voice af_sarah --scenes 2 --target instagram
-```
-
-### All Options
-
-| Flag | Default | Description |
-|------|---------|-------------|
-| `--script` | — | Path to your `.txt` script file |
-| `--text` | — | Inline script text (alternative to `--script`) |
-| `--topic` | required | Label used for output file naming |
-| `--voice` | `af_sarah` | Kokoro voice ID (see voice table below) |
-| `--scenes` | `2` | Number of video clips to generate |
-| `--target` | `both` | Output format: `instagram`, `youtube`, or `both` |
-| `--no-refine` | off | Skip Gemma refinement, use script as-is |
-
-### Voice Options
-
-| Voice ID | Gender | Accent | Best For |
-|----------|--------|--------|----------|
-| `af_sarah` | Female | American | General, conversational |
-| `af_bella` | Female | American | Warm, friendly |
-| `af_heart` | Female | American | Energetic, upbeat |
-| `af_nicole` | Female | American | Professional |
-| `am_adam` | Male | American | Authoritative |
-| `am_michael` | Male | American | Deep, documentary |
-| `bf_emma` | Female | British | Formal, educational |
-| `bm_george` | Male | British | Narration, serious |
+CPU-only mode runs but is very slow (~10× slower than CUDA). AMD GPUs aren't currently supported by Wan2.1 — track [this issue](https://github.com/Wan-AI/Wan2.1/issues) for ROCm progress.
 
 ---
 
-## Folder Structure
+## Quick Start
 
-```
-ai-video-pipeline/
-│
-├── orchestrator.py          # Main pipeline script — runs everything
-├── kokoro_tts.py            # Kokoro TTS module — text to audio
-├── wan_client.py            # ComfyUI API client — submits video jobs
-├── ffmpeg_merger.py         # FFmpeg module — merges video + audio
-│
-├── wan_workflow_api.json    # Your ComfyUI workflow (machine-specific, not in git)
-├── requirements.txt         # Python dependencies
-├── .gitignore               # Excludes outputs, venvs, workflow JSON
-│
-├── scripts/                 # Put your input .txt script files here
-│     └── ai_intro.txt
-│
-├── outputs/
-│     ├── audio/             # Generated .wav voice files
-│     ├── video/             # Raw Wan2.1 video clips
-│     └── final/             # Merged, platform-ready MP4 files
-│
-├── venv311/                 # Python virtual environment (not in git)
-└── docs/                    # Setup guides and documentation
-```
+After installation, the app shows a five-step onboarding card. Dismiss it and:
+
+1. **Click + New Project** in the sidebar
+2. **Paste your script** in the Script tab — anything from one sentence to several paragraphs
+3. **Pick a Skill** — Documentary, Cinematic Story, Explainer, Social Short, Product Showcase, Tutorial, or News Brief. The Skill bundles voice, pacing, visual style, music mood, and post-processing into one preset.
+4. **Switch to Render tab** and toggle the quality options you want (subtitles, music, frame interpolation, upscaling)
+5. **Hit Generate Video** — the queue strip at the bottom shows live progress through 8 stages
+
+When the render finishes, click `⬇ Download MP4` to save it, or `Show in folder` to open the output directory.
 
 ---
 
-## Requirements
+## Skills
 
-Full `requirements.txt`:
+A Skill is a preset that determines the entire look and feel of the output. The default pack ships seven:
 
-```
-requests>=2.31.0
-kokoro>=0.9.4
-soundfile>=0.12.1
-numpy>=1.24.0
-websocket-client>=1.6.0
-torch>=2.1.0
-torchvision>=0.16.0
-torchaudio>=2.1.0
-```
+| Skill | Voice | Pacing | Aspect | Best For |
+|-------|-------|--------|--------|----------|
+| **Documentary**     | George (British male) | Slow   | 16:9 | Long-form narration, nature, history |
+| **Explainer**       | Sarah (American female) | Medium | 16:9 | Concept videos, tutorials |
+| **Product Showcase** | Michael (American male) | Medium | 1:1  | Marketing, demos |
+| **Cinematic Story** | George (British male) | Slow   | 16:9 | Storytelling, dramatic content |
+| **Social Short**    | Heart (American female) | Fast   | 9:16 | TikTok, Reels, Shorts |
+| **Tutorial**        | Nicole (American female) | Medium | 16:9 | How-to content |
+| **News Brief**      | Adam (American male) | Fast   | 16:9 | News updates, recaps |
 
-**System requirements:**
-
-| Component | Minimum | Recommended |
-|-----------|---------|-------------|
-| GPU VRAM | 8 GB | 16 GB+ |
-| RAM | 16 GB | 32 GB |
-| Disk space | 60 GB | 100 GB |
-| Python | 3.10 | 3.11 |
-| OS | Windows 10 / Ubuntu 20.04 | Windows 11 / Ubuntu 22.04 |
+Each Skill bundles a prompt template, voice + speed, scene pacing hint, music mood, and post-processing chain (color grade, film grain, letterbox). Custom Skills are JSON files in `app/skills/` — duplicate one to make your own.
 
 ---
 
-## Expected Output Timeline
+## Quality Settings
 
-| Step | What Runs | Time |
-|------|-----------|------|
-| Script refinement | Gemma via Ollama | ~10 sec |
-| Prompt generation | Gemma via Ollama | ~10 sec |
-| Voice synthesis | Kokoro TTS | ~5 sec |
-| Video clip (per scene) | Wan2.1 via ComfyUI | ~8 min |
-| Merge + export | FFmpeg | ~30 sec |
-| **Total (2 scenes)** | | **~17 min** |
+The Render tab exposes four toggles independent of the Skill:
+
+| Toggle | Backend Module | Cost |
+|--------|----------------|------|
+| **Subtitles**          | faster-whisper transcription → FFmpeg subtitle burn | ~10s per minute of audio |
+| **Background Music**   | MusicGen mood-matched composition + auto-ducking mix | ~30s per scene |
+| **Frame Interpolation** | FFmpeg minterpolate (RIFE-compatible swap-in) | +30% render time |
+| **Upscaling**          | FFmpeg super2xbr+lanczos (Real-ESRGAN swap-in) | +20% render time |
+
+Skills auto-enable some toggles by default (e.g. Social Short turns on subtitles because mobile viewers watch muted).
+
+---
+
+## Templates, Versions, Batch
+
+After your first successful render, three workflow accelerators become useful:
+
+**Templates** — `Save as Template` on the Render tab captures the project's skill, voice, scene count, and quality settings as a reusable preset. Open the Templates browser from the sidebar to apply one to a new project in two clicks.
+
+**Version History** — every successful generation is automatically snapshotted with the full script, scene prompts, and a copy of the final MP4. Click `Version History` on the Render tab to compare past renders or restore an earlier configuration.
+
+**Batch Generation** — the Batch button in the sidebar opens a multi-row editor. Paste 10 scripts at once, optionally apply a template to all of them, and queue them up. The pipeline runs them sequentially overnight.
+
+---
+
+## Architecture
+
+Three-tier system designed so each layer can evolve independently:
+
+```
+┌────────────────────────────────────────────────────────┐
+│  ELECTRON FRONTEND        React + Zustand + Tailwind   │
+│  ─ project library, editor, queue, model browser       │
+│  ─ real-time progress via WebSocket                    │
+└────────────────────────┬───────────────────────────────┘
+                         │ REST + WS @ localhost:7860
+                         ▼
+┌────────────────────────────────────────────────────────┐
+│  PYTHON BACKEND DAEMON    FastAPI + SQLAlchemy          │
+│  ─ service orchestration, generation queue, cache       │
+│  ─ VRAM-aware model lifecycle                          │
+│  ─ scene cache (sha256 of prompt+seed+model+res)       │
+└────────────┬────────────────┬──────────────┬───────────┘
+             ▼                ▼              ▼
+        ┌────────┐       ┌─────────┐     ┌─────────┐
+        │ Ollama │       │ ComfyUI │     │ FFmpeg  │
+        │ Gemma  │       │ Wan2.1  │     │ Kokoro  │
+        └────────┘       └─────────┘     └─────────┘
+```
+
+Full design rationale lives in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md). The roadmap that drove the build is in [`AI_VIDEO_STUDIO_ROADMAP.md`](AI_VIDEO_STUDIO_ROADMAP.md).
+
+---
+
+## Build from source
+
+Build the desktop installers yourself if you don't want to use the GitHub releases:
+
+```bash
+cd app/frontend
+npm install
+npm run build:win     # Windows: NSIS .exe + portable .exe
+npm run build:linux   # Linux: AppImage + .deb
+npm run build:mac     # macOS: DMG + zip (x64 + arm64)
+npm run build:all     # All three platforms (requires macOS host for proper signing)
+```
+
+Artifacts land in `app/frontend/release/`. See [`docs/BUILDING.md`](docs/BUILDING.md) for the full procedure including code signing and notarization.
 
 ---
 
 ## Troubleshooting
 
-**`[ERROR] Cannot connect to Ollama`**
-→ Run `ollama serve` in a separate terminal first.
+**Setup screen stalls on PyTorch install**  
+Slow disk + 2.5GB download. Check the log viewer at the bottom of the setup screen. If it's been more than 20 minutes, retry from the setup screen's retry button.
 
-**`500 Internal Server Error` from Ollama**
-→ Wrong model name. Run `ollama list` and update `GEMMA_MODEL` in `orchestrator.py`.
+**"Cannot connect to Ollama" during generation**  
+Ollama crashed or wasn't started. The app tries to start it automatically — open the Model Browser to verify Ollama models are listed. If empty, run `ollama serve` in a terminal.
 
-**`FileNotFoundError: wan_workflow_api.json`**
-→ Export the workflow from ComfyUI browser interface (`Ctrl+Shift+Q` → Save) and place it in the project root.
+**Backend status shows "ComfyUI: not running"**  
+ComfyUI starts lazily on first generation. If it fails to start, check that `app/runtime/comfyui/` exists and contains a `main.py`. Re-run the bootstrap if not.
 
-**`CUDA out of memory`**
-→ Reduce `num_frames` to `49` in `orchestrator.py`, or use `--scenes 1`.
+**"CUDA out of memory" mid-generation**  
+The VRAM manager should have downgraded to a smaller model — check the queue progress message for "Used wan2.1-1.3b instead of wan2.1-14b". If still failing, close other GPU apps (Chrome with hardware accel uses 1–2 GB), or restart the daemon.
 
-**Kokoro import error**
-→ Make sure `espeak-ng` is installed system-wide and `venv311` is activated.
+**Black bars / wrong aspect ratio in output**  
+The Skill controls aspect ratio. Social Short → 9:16, all others → 16:9 by default. Change the Skill or duplicate one and edit the JSON.
+
+**Subtitles look misaligned**  
+Whisper is mis-transcribing the audio. Try regenerating audio with a different voice (some skills' default voices Whisper handles better than others).
+
+More troubleshooting in [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md).
 
 ---
 
 ## Contributing
 
-Contributions are welcome. Here is how to get involved:
+Contributions welcome — especially:
 
-1. **Fork** the repository on GitHub
-2. **Create a branch** for your feature:
-   ```bash
-   git checkout -b feature/your-feature-name
-   ```
-3. **Make your changes** and commit with clear messages:
-   ```bash
-   git commit -m "Add: subtitle generation via Whisper"
-   ```
-4. **Push** to your fork:
-   ```bash
-   git push origin feature/your-feature-name
-   ```
-5. **Open a Pull Request** on GitHub with a description of what you changed and why
+- New Skills (just add a JSON file to `app/skills/`)
+- Additional FFmpeg post-processing presets in `pipeline/ffmpeg_merger.py`
+- Real-ESRGAN and RIFE ComfyUI node integrations to replace the FFmpeg fallbacks
+- Voice cloning via XTTS / Tortoise TTS
+- AMD ROCm support for Wan2.1
+- Mobile companion app for triggering renders from a phone
 
-**Good first contributions:**
-- Adding new FFmpeg export formats (TikTok, Twitter)
-- Whisper integration for auto-subtitles
-- Web UI wrapper using Gradio or Streamlit
-- Support for AnimateDiff or LTX-Video as alternative video backends
-- Prompt template library for different content niches
+Process:
 
-Please open an **Issue** before starting large changes so we can discuss the approach first.
+1. Open an issue describing the change before starting large work
+2. Fork → feature branch → PR against `main`
+3. Run `npm run typecheck` in `app/frontend/` and ensure the backend boots with `python -m uvicorn app.backend.main:app`
+4. Include a brief test plan in the PR description
+
+See [`docs/CONTRIBUTING.md`](docs/CONTRIBUTING.md) for code style and architectural conventions.
 
 ---
 
 ## License
 
-This project is licensed under the **MIT License** — see [`LICENSE`](LICENSE) for full terms.
-
-In short: use it, modify it, distribute it freely. Attribution appreciated but not required.
+[MIT](LICENSE) — use it, modify it, distribute it freely. Attribution appreciated but not required.
 
 ---
 
 ## Acknowledgements
 
-This project stands on the shoulders of several outstanding open-source efforts:
+Built on the shoulders of:
 
-- **[Wan2.1](https://github.com/Wan-AI/Wan2.1)** by Wan-AI — the video generation model at the core of this pipeline
-- **[Kokoro TTS](https://github.com/hexgrad/kokoro)** by hexgrad — lightweight, high-quality local text-to-speech
-- **[ComfyUI](https://github.com/comfyanonymous/ComfyUI)** by comfyanonymous — the node-based interface that makes running local video models practical
-- **[Ollama](https://ollama.com)** — frictionless local LLM serving that makes Gemma accessible via a simple API
-- **[Gemma](https://ai.google.dev/gemma)** by Google DeepMind — the language model powering script refinement and prompt generation
-- **[FFmpeg](https://ffmpeg.org)** — the indispensable open-source multimedia framework handling all video/audio processing
+- **[Wan2.1](https://github.com/Wan-AI/Wan2.1)** — text-to-video model
+- **[Kokoro TTS](https://github.com/hexgrad/kokoro)** — local high-quality text-to-speech
+- **[ComfyUI](https://github.com/comfyanonymous/ComfyUI)** — node-based runtime for diffusion models
+- **[Ollama](https://ollama.com)** — frictionless local LLM serving
+- **[Gemma](https://ai.google.dev/gemma)** — Google DeepMind's open language model
+- **[faster-whisper](https://github.com/SYSTRAN/faster-whisper)** — CTranslate2-accelerated transcription
+- **[MusicGen](https://github.com/facebookresearch/audiocraft)** — Meta's text-to-music model
+- **[FFmpeg](https://ffmpeg.org)** — the indispensable multimedia framework
+- **[Electron](https://www.electronjs.org/)** + **[React](https://react.dev/)** + **[Vite](https://vitejs.dev/)** + **[FastAPI](https://fastapi.tiangolo.com/)** + **[Tailwind CSS](https://tailwindcss.com/)**
 
 ---
 

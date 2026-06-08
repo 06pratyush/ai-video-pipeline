@@ -44,9 +44,24 @@ app.include_router(versions.router)
 app.include_router(batch.router)
 
 
+VERSION = "1.0.0"
+
+
 @app.get("/")
 def root():
-    return {"name": "AI Video Studio Backend", "version": "1.0.0", "status": "running"}
+    return {"name": "AI Video Studio Backend", "version": VERSION, "status": "running"}
+
+
+@app.get("/version")
+def version():
+    """Returns version metadata for the About dialog and update checks."""
+    import platform as _plat
+    return {
+        "version": VERSION,
+        "build": "phase-8-release",
+        "python": _plat.python_version(),
+        "platform": _plat.platform(),
+    }
 
 
 if __name__ == "__main__":

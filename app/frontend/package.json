@@ -2,13 +2,25 @@
   "name": "ai-video-studio",
   "version": "1.0.0",
   "description": "AI Video Studio — generate cinematic videos from text, fully local",
+  "author": {
+    "name": "Hallucinated Lab",
+    "email": "hello@hallucinated.com"
+  },
+  "homepage": "https://github.com/06pratyush/ai-video-pipeline",
+  "license": "MIT",
   "main": "dist-electron/main.js",
   "scripts": {
-    "dev": "concurrently -k \"npm run dev:vite\" \"npm run dev:electron\"",
-    "dev:vite": "vite",
-    "dev:electron": "wait-on tcp:5173 && cross-env NODE_ENV=development electron .",
-    "build": "tsc && vite build && electron-builder",
-    "preview": "vite preview"
+    "dev":           "concurrently -k \"npm run dev:vite\" \"npm run dev:electron\"",
+    "dev:vite":      "vite",
+    "dev:electron":  "wait-on tcp:5173 && cross-env NODE_ENV=development electron .",
+    "typecheck":     "tsc --noEmit",
+    "build:renderer": "tsc && vite build",
+    "build:win":     "npm run build:renderer && electron-builder --win",
+    "build:linux":   "npm run build:renderer && electron-builder --linux",
+    "build:mac":     "npm run build:renderer && electron-builder --mac",
+    "build:all":     "npm run build:renderer && electron-builder -mwl",
+    "build":         "npm run build:renderer && electron-builder",
+    "preview":       "vite preview"
   },
   "dependencies": {
     "clsx": "^2.1.1",
@@ -38,24 +50,90 @@
   "build": {
     "appId": "com.hallucinated.aivideostudio",
     "productName": "AI Video Studio",
+    "copyright": "Copyright © 2026 Hallucinated Lab",
     "directories": {
-      "output": "release"
+      "output": "release",
+      "buildResources": "build"
     },
     "files": [
       "dist/**/*",
-      "dist-electron/**/*"
+      "dist-electron/**/*",
+      "package.json"
     ],
+    "extraResources": [
+      {
+        "from": "../../installer",
+        "to": "installer",
+        "filter": ["**/*"]
+      },
+      {
+        "from": "../skills",
+        "to": "skills",
+        "filter": ["**/*.json"]
+      },
+      {
+        "from": "../backend",
+        "to": "backend",
+        "filter": ["**/*.py", "requirements.txt"]
+      }
+    ],
+    "asar": true,
+    "compression": "maximum",
     "win": {
-      "target": "nsis"
+      "target": [
+        { "target": "nsis", "arch": ["x64"] },
+        { "target": "portable", "arch": ["x64"] }
+      ],
+      "artifactName": "AI-Video-Studio-${version}-${arch}.${ext}",
+      "icon": "build/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "AI Video Studio",
+      "license": "../../LICENSE",
+      "installerHeader": "build/installer-header.bmp",
+      "installerSidebar": "build/installer-sidebar.bmp"
     },
     "linux": {
       "target": [
-        "AppImage",
-        "deb"
-      ]
+        { "target": "AppImage", "arch": ["x64"] },
+        { "target": "deb",      "arch": ["x64"] }
+      ],
+      "artifactName": "AI-Video-Studio-${version}-${arch}.${ext}",
+      "category": "AudioVideo",
+      "icon": "build/icon.png",
+      "synopsis": "Generate cinematic videos from text — fully local AI pipeline",
+      "description": "AI Video Studio is a desktop app that turns text scripts into narrated, cinematic videos using local AI models. No cloud, no subscriptions, no API keys.",
+      "maintainer": "Hallucinated Lab <hello@hallucinated.com>"
     },
     "mac": {
-      "target": "dmg"
+      "target": [
+        { "target": "dmg",  "arch": ["x64", "arm64"] },
+        { "target": "zip",  "arch": ["x64", "arm64"] }
+      ],
+      "artifactName": "AI-Video-Studio-${version}-${arch}.${ext}",
+      "category": "public.app-category.video",
+      "icon": "build/icon.icns",
+      "darkModeSupport": true,
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist"
+    },
+    "dmg": {
+      "title": "AI Video Studio ${version}",
+      "icon": "build/icon.icns",
+      "window": { "width": 540, "height": 380 }
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "06pratyush",
+      "repo": "ai-video-pipeline",
+      "releaseType": "release"
     }
   }
 }
