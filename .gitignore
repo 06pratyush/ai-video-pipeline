@@ -36,3 +36,12 @@ app/frontend/release/
 
 # VS Code settings
 .vscode/
+
+# Development-only documentation (kept locally for maintainers, not published)
+AI_VIDEO_STUDIO_ROADMAP.md
+CHANGELOG.md
+docs/
+app/frontend/build/README.md
+memory/
+.claude/
+

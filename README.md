@@ -163,7 +163,7 @@ Three-tier system designed so each layer can evolve independently:
         └────────┘       └─────────┘     └─────────┘
 ```
 
-Full design rationale lives in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md). The roadmap that drove the build is in [`AI_VIDEO_STUDIO_ROADMAP.md`](AI_VIDEO_STUDIO_ROADMAP.md).
+The frontend talks to the backend only via REST + WebSocket on `localhost:7860`. All ML work happens in Python. The Electron shell is purely a presentation layer.
 
 ---
 
@@ -180,7 +180,7 @@ npm run build:mac     # macOS: DMG + zip (x64 + arm64)
 npm run build:all     # All three platforms (requires macOS host for proper signing)
 ```
 
-Artifacts land in `app/frontend/release/`. See [`docs/BUILDING.md`](docs/BUILDING.md) for the full procedure including code signing and notarization.
+Artifacts land in `app/frontend/release/`. Code signing requires the matching host OS — macOS DMGs must be built on macOS for notarization to work.
 
 ---
 
@@ -204,7 +204,7 @@ The Skill controls aspect ratio. Social Short → 9:16, all others → 16:9 by d
 **Subtitles look misaligned**  
 Whisper is mis-transcribing the audio. Try regenerating audio with a different voice (some skills' default voices Whisper handles better than others).
 
-More troubleshooting in [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md).
+Open an issue on GitHub if you hit a symptom not covered above — include OS, GPU model, VRAM, and the exact reproduction steps.
 
 ---
 
@@ -226,7 +226,7 @@ Process:
 3. Run `npm run typecheck` in `app/frontend/` and ensure the backend boots with `python -m uvicorn app.backend.main:app`
 4. Include a brief test plan in the PR description
 
-See [`docs/CONTRIBUTING.md`](docs/CONTRIBUTING.md) for code style and architectural conventions.
+Run `npm run typecheck` in `app/frontend/` and ensure the backend boots with `python -m uvicorn app.backend.main:app` before opening a PR.
 
 ---
 
