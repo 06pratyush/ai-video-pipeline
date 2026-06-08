@@ -57,3 +57,57 @@ def delete_skill(skill_id: str):
         raise HTTPException(status_code=404, detail=f"Skill '{skill_id}' not found")
     path.unlink()
     return {"deleted": skill_id}
+
+
+@router.get("/{skill_id}/export")
+def export_skill(skill_id: str):
+    """Return a Skill as a downloadable JSON file."""
+    from fastapi.responses import FileResponse
+    path = SKILLS_DIR / f"{skill_id}.json"
+    if not path.exists():
+        raise HTTPException(status_code=404, detail=f"Skill '{skill_id}' not found")
+    return FileResponse(
+        path,
+        media_type="application/json",
+        filename=f"{skill_id}.skill.json",
+    )
+
+
+@router.post("/import")
+def import_skill(skill: dict):
+    """
+    Import a Skill from a JSON payload (e.g. uploaded file).
+    Validates required fields, assigns a fresh id if it would collide.
+    """
+    required = ["name", "voice", "prompt_template", "aspect_ratio"]
+    missing = [f for f in required if f not in skill]
+    if missing:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Skill missing required fields: {', '.join(missing)}",
+        )
+
+    skill_id = skill.get("id") or skill["name"].lower().replace(" ", "-")
+    path = SKILLS_DIR / f"{skill_id}.json"
+
+    # Collision handling — suffix with -1, -2, ...
+    if path.exists():
+        i = 1
+        while (SKILLS_DIR / f"{skill_id}-{i}.json").exists():
+            i += 1
+        skill_id = f"{skill_id}-{i}"
+        path = SKILLS_DIR / f"{skill_id}.json"
+
+    skill["id"] = skill_id
+    skill.setdefault("voice_speed", 1.0)
+    skill.setdefault("scene_pacing", "medium")
+    skill.setdefault("resolution", "1080p")
+    skill.setdefault("subtitles", False)
+    skill.setdefault("music_mood", "ambient_score")
+    skill.setdefault("post_processing", [])
+    skill.setdefault("description", "")
+    skill.setdefault("icon", f"{skill_id}.svg")
+
+    SKILLS_DIR.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(skill, indent=2))
+    return skill

@@ -3,12 +3,13 @@ import { useProjectStore } from '@/stores/projectStore'
 import { Project } from '@/api/backend'
 
 export default function ProjectLibrary({
-  onNewProject, onOpenModels, onOpenTemplates, onOpenBatch,
+  onNewProject, onOpenModels, onOpenTemplates, onOpenBatch, onOpenLongForm,
 }: {
   onNewProject: () => void
   onOpenModels: () => void
   onOpenTemplates: () => void
   onOpenBatch: () => void
+  onOpenLongForm: () => void
 }) {
   const { projects, activeProjectId, setActiveProject, deleteProject } = useProjectStore()
   const [search, setSearch] = useState('')
@@ -58,8 +59,9 @@ export default function ProjectLibrary({
         <div className="grid grid-cols-2 gap-1.5">
           <FooterButton label="Templates" onClick={onOpenTemplates} />
           <FooterButton label="Batch"     onClick={onOpenBatch} />
+          <FooterButton label="Long-form" onClick={onOpenLongForm} />
+          <FooterButton label="Models"    onClick={onOpenModels} />
         </div>
-        <FooterButton label="⊞ Model Browser" onClick={onOpenModels} />
       </div>
 
       {/* Delete confirm dialog */}

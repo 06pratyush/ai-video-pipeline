@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useProjectStore, useActiveProject } from '@/stores/projectStore'
 import { useModelStore } from '@/stores/modelStore'
+import { api } from '@/api/backend'
 import SkillPicker from './SkillPicker'
 
 const VOICES = [
@@ -84,9 +85,45 @@ export default function ScriptEditor() {
 
       {/* Skill picker */}
       <div>
-        <label className="text-xs font-medium text-text-secondary uppercase tracking-wider block mb-2">
-          Skill
-        </label>
+        <div className="flex items-center justify-between mb-2">
+          <label className="text-xs font-medium text-text-secondary uppercase tracking-wider">
+            Skill
+          </label>
+          <div className="flex gap-2 text-xs">
+            {activeSkill && (
+              <a
+                href={`http://localhost:7860/skills/${activeSkill.id}/export`}
+                download={`${activeSkill.id}.skill.json`}
+                className="text-text-muted hover:text-text-secondary transition-colors"
+              >
+                Export
+              </a>
+            )}
+            <label className="text-text-muted hover:text-text-secondary transition-colors cursor-pointer">
+              Import
+              <input
+                type="file"
+                accept=".json"
+                className="hidden"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0]
+                  if (!file) return
+                  try {
+                    const text = await file.text()
+                    const skill = JSON.parse(text)
+                    const created = await api.skillIO.import(skill)
+                    await useModelStore.getState().fetchSkills()
+                    setSkillId(created.id)
+                    setDirty(true)
+                  } catch (err) {
+                    alert('Import failed: ' + err)
+                  }
+                  e.target.value = ''
+                }}
+              />
+            </label>
+          </div>
+        </div>
         <SkillPicker value={skillId} onChange={handleSkillChange} />
       </div>
 

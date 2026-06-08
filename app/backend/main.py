@@ -8,7 +8,11 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.backend.db import init_db
 from app.backend import daemon
-from app.backend.routes import projects, generation, models, skills, system, templates, versions, batch
+from app.backend.routes import (
+    projects, generation, models, skills, system, templates, versions, batch,
+    updates, voices, longform,
+)
+from app.backend.version import VERSION, BUILD
 
 
 @asynccontextmanager
@@ -42,9 +46,9 @@ app.include_router(skills.router)
 app.include_router(templates.router)
 app.include_router(versions.router)
 app.include_router(batch.router)
-
-
-VERSION = "1.0.0"
+app.include_router(updates.router)
+app.include_router(voices.router)
+app.include_router(longform.router)
 
 
 @app.get("/")
@@ -57,9 +61,9 @@ def version():
     """Returns version metadata for the About dialog and update checks."""
     import platform as _plat
     return {
-        "version": VERSION,
-        "build": "phase-8-release",
-        "python": _plat.python_version(),
+        "version":  VERSION,
+        "build":    BUILD,
+        "python":   _plat.python_version(),
         "platform": _plat.platform(),
     }
 

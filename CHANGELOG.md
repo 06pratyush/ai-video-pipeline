@@ -6,7 +6,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ---
 
-## [1.0.0] — 2026-06-08
+## [Unreleased] — Phase 9 extensions
+
+### Added
+- **Auto-update banner** — checks GitHub Releases every 6 hours, shows a dismissible
+  banner with platform-specific download link when a newer version exists
+- **Skill export / import** — Export button in the ScriptEditor downloads the active
+  skill as `{id}.skill.json`; Import accepts any uploaded Skill JSON, validates required
+  fields, auto-assigns a fresh id on collision. Foundation for a community marketplace
+- **Voice cloning** — XTTS v2 pipeline module (`xtts_client.py`) with reference-clip
+  speech synthesis; `/voices/` route for upload/list/delete; degrades cleanly when
+  TTS package isn't installed
+- **Long-form mode** — script chunker splits long narration at sentence boundaries
+  into 60–90 second sub-projects; `/longform/preview` shows the split plan; `/longform/create`
+  queues all chunks as a batch. New modal in the sidebar with live preview
+- **/updates/check** and **/version** endpoints with platform-specific asset detection
+
+### Changed
+- Backend `VERSION` constant moved to `app/backend/version.py` to break circular imports
+- ProjectLibrary footer reorganized as a 2×2 grid (Templates, Batch, Long-form, Models)
+
+
 
 First public release. Eight phases of work, from CLI prototype to packaged desktop app.
 

@@ -93,6 +93,40 @@ export const api = {
       req('DELETE', `/projects/${projectId}/versions/${versionId}`),
   },
 
+  // ── Updates ───────────────────────────────────────────────────────────────
+  updates: {
+    check: () => req<UpdateCheck>('GET', '/updates/check'),
+  },
+
+  // ── Voices (cloning) ──────────────────────────────────────────────────────
+  voices: {
+    list:   () => req<{ xtts_available: boolean; voices: VoiceClip[] }>('GET', '/voices/'),
+    delete: (id: string) => req('DELETE', `/voices/${id}`),
+  },
+
+  // ── Long-form ─────────────────────────────────────────────────────────────
+  longform: {
+    preview: (script: string, chunkWords?: number) =>
+      req<LongFormPreview>('POST', '/longform/preview', { script, chunk_words: chunkWords ?? 180 }),
+    create:  (payload: {
+      base_name: string
+      topic: string
+      script: string
+      voice?: string
+      skill_id?: string | null
+      chunk_words?: number
+      render_opts?: RenderOpts
+    }) => req<{ total_chunks: number; items: { project_id: string; queue_item_id: string; chunk_index: number; scene_count: number; est_seconds: number }[] }>(
+      'POST', '/longform/create', payload,
+    ),
+  },
+
+  // ── Skill import / export ─────────────────────────────────────────────────
+  skillIO: {
+    exportUrl: (id: string) => `${BASE}/skills/${id}/export`,
+    import:    (skill: object) => req<Skill>('POST', '/skills/import', skill),
+  },
+
   // ── Batch ─────────────────────────────────────────────────────────────────
   batch: {
     create: (items: BatchItem[], opts?: { template_id?: string; render_opts?: RenderOpts }) =>
@@ -307,6 +341,45 @@ export interface BatchItem {
   voice?: string
   num_scenes?: number
   skill_id?: string | null
+}
+
+export interface UpdateCheck {
+  available: boolean
+  current: string
+  latest: string | null
+  release_url?: string
+  published_at?: string
+  release_notes?: string
+  downloads?: {
+    windows?: string
+    linux_appimage?: string
+    linux_deb?: string
+    macos_arm64?: string
+    macos_x64?: string
+  }
+  error?: string
+}
+
+export interface VoiceClip {
+  id: string
+  name: string
+  path: string
+  size_kb: number
+}
+
+export interface LongFormChunk {
+  index: number
+  total: number
+  script: string
+  num_scenes: number
+  est_duration_sec: number
+}
+
+export interface LongFormPreview {
+  chunks: LongFormChunk[]
+  total_chunks: number
+  total_est_seconds: number
+  needs_chunking: boolean
 }
 
 export interface ProgressMessage {
