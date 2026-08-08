@@ -1,9 +1,12 @@
 """Database engine and session setup."""
+import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, DeclarativeBase
 from pathlib import Path
 
-DB_PATH = Path(__file__).parent / "db.sqlite"
+# Overridable so tests can run against a throwaway database instead of the
+# user's real project data.
+DB_PATH = Path(os.environ.get("AIVS_DB_PATH", Path(__file__).parent / "db.sqlite"))
 engine = create_engine(f"sqlite:///{DB_PATH}", connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
