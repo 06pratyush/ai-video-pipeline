@@ -28,8 +28,14 @@ async def startup():
     model_registry.refresh()
     print(f"[DAEMON] Registry built: {len(model_registry.get_all())} entries")
 
+    # Re-queue anything stranded in 'running' by an unclean shutdown, before the
+    # worker starts — otherwise those jobs are never picked up again.
+    recovered = generation_queue.recover_orphaned_items()
+    if recovered:
+        print(f"[DAEMON] Recovered {recovered} interrupted job(s) back into the queue")
+
     # Wire event loop into queue worker
-    loop = asyncio.get_event_loop()
+    loop = asyncio.get_running_loop()
     generation_queue.set_event_loop(loop)
     generation_queue.start_worker()
     print("[DAEMON] Generation queue worker started")

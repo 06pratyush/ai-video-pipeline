@@ -83,6 +83,56 @@ def cancel(queue_item_id: str):
         db.close()
 
 
+class _Cancelled(Exception):
+    """Raised inside the pipeline to unwind cleanly when the user cancels a running job."""
+
+
+def _is_cancelled(queue_item_id: str) -> bool:
+    """
+    Check for an out-of-band cancellation using a fresh session.
+
+    The pipeline's own session holds an open SQLite read transaction, so it would
+    keep seeing its original snapshot and never observe a cancel committed by the
+    request thread. A short-lived session gets a current read.
+    """
+    probe: Session = SessionLocal()
+    try:
+        row = probe.query(QueueItem).filter_by(id=queue_item_id).first()
+        return row is not None and row.status == "cancelled"
+    finally:
+        probe.close()
+
+
+def _abort_if_cancelled(queue_item_id: str):
+    if _is_cancelled(queue_item_id):
+        raise _Cancelled()
+
+
+def recover_orphaned_items() -> int:
+    """
+    Re-queue jobs left in 'running' by an unclean shutdown (crash, kill, power loss).
+
+    The worker only ever selects items with status 'queued', so without this an
+    interrupted job is stranded forever: it never resumes and never reports failure.
+    Returns the number of items recovered.
+    """
+    db: Session = SessionLocal()
+    try:
+        stale = db.query(QueueItem).filter_by(status="running").all()
+        for item in stale:
+            item.status = "queued"
+            item.started_at = None
+            item.progress = 0.0
+            proj = db.query(Project).filter_by(id=item.project_id).first()
+            if proj and proj.status == "running":
+                proj.status = "queued"
+        if stale:
+            db.commit()
+        return len(stale)
+    finally:
+        db.close()
+
+
 def _worker_loop():
     while _running:
         db: Session = SessionLocal()
@@ -113,6 +163,14 @@ def _run_pipeline(queue_item_id: str, project_id: str):
     try:
         project = db.query(Project).filter_by(id=project_id).first()
         if not project:
+            # Mark terminal before bailing out. A bare return would leave the item
+            # in 'running' forever, since the worker only ever picks up 'queued'.
+            item = db.query(QueueItem).filter_by(id=queue_item_id).first()
+            if item:
+                item.status = "error"
+                item.error_message = f"Project {project_id} no longer exists"
+                item.completed_at = datetime.utcnow()
+                db.commit()
             return
 
         # Load render opts from queue item
@@ -129,6 +187,14 @@ def _run_pipeline(queue_item_id: str, project_id: str):
         final_dir = base_dir / "final"
         for d in (audio_dir, scenes_dir, final_dir):
             d.mkdir(parents=True, exist_ok=True)
+
+        # Projects are created with an empty script (the user writes it in the editor).
+        # Fail fast and clearly, rather than feeding "" to the LLM and TTS and dying
+        # several expensive minutes later with an unrelated-looking error.
+        if not (project.script or "").strip():
+            raise RuntimeError(
+                "This project has no script yet. Add a script before generating."
+            )
 
         # ── Step 1: Refine narration ──────────────────────────────────
         _emit(project_id, "refining", 0.05, "running", "Refining narration with Gemma...")
@@ -227,6 +293,10 @@ def _run_pipeline(queue_item_id: str, project_id: str):
             _emit(project_id, f"scene_0", 0.29, "running", f"Note: {routing_warning}")
 
         for i, scene in enumerate(scenes):
+            # Cancellation is checked per scene: scene generation is the long pole,
+            # so this is the granularity at which a cancel can actually take effect.
+            _abort_if_cancelled(queue_item_id)
+
             if scene.status == "locked" and scene.video_path and Path(scene.video_path).exists():
                 video_clips.append(scene.video_path)
                 continue
@@ -276,6 +346,8 @@ def _run_pipeline(queue_item_id: str, project_id: str):
                 print(f"[QUEUE] Scene {i+1} failed: {e}")
 
         # ── Step 5: Merge clips ───────────────────────────────────────
+        _abort_if_cancelled(queue_item_id)
+
         if not video_clips:
             raise RuntimeError("No video clips generated")
 
@@ -360,6 +432,10 @@ def _run_pipeline(queue_item_id: str, project_id: str):
         else:
             shutil.copy2(pp_path, final_path)
 
+        # Re-check before writing the terminal state: a cancel landing during the
+        # merge/post-process stage would otherwise be silently overwritten by 'done'.
+        _abort_if_cancelled(queue_item_id)
+
         project.final_path = final_path
         project.status = "done"
 
@@ -417,6 +493,20 @@ def _run_pipeline(queue_item_id: str, project_id: str):
 
         _emit(project_id, "done", 1.0, "done", "Generation complete!")
 
+    except _Cancelled:
+        # User-initiated stop — a terminal state, not a failure.
+        db.rollback()
+        project = db.query(Project).filter_by(id=project_id).first()
+        if project:
+            project.status = "cancelled"
+        item = db.query(QueueItem).filter_by(id=queue_item_id).first()
+        if item:
+            item.status = "cancelled"
+            item.completed_at = datetime.utcnow()
+        db.commit()
+        _emit(project_id, "cancelled", 0.0, "cancelled", "Generation cancelled")
+        print(f"[QUEUE] Pipeline cancelled for {project_id}")
+
     except Exception as e:
         db.rollback()
         project = db.query(Project).filter_by(id=project_id).first()
@@ -427,6 +517,7 @@ def _run_pipeline(queue_item_id: str, project_id: str):
         if item:
             item.status = "error"
             item.error_message = str(e)
+            item.completed_at = datetime.utcnow()  # terminal states must be timestamped
             db.commit()
         _emit(project_id, "error", 0.0, "error", str(e))
         print(f"[QUEUE] Pipeline failed for {project_id}: {e}")
