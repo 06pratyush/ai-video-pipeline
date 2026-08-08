@@ -1,5 +1,5 @@
 from sqlalchemy import Column, String, Integer, Text, DateTime, ForeignKey, func
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, relationship
 from datetime import datetime
 import uuid
 from app.backend.db import Base
@@ -21,6 +21,9 @@ class ProjectVersion(Base):
     thumbnail    = Column(String, nullable=True)
     duration     = Column(Integer, nullable=True)           # seconds
     created_at   = Column(DateTime, default=datetime.utcnow)
+
+    project = relationship("Project", back_populates="versions")
+
 
 def next_version_num(db: Session, project_id: str) -> int:
     """
