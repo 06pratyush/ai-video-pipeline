@@ -45,3 +45,5 @@ app/frontend/build/README.md
 memory/
 .claude/
 
+.orchestrator/logs/
+.orchestrator/tmp/

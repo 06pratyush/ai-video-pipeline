@@ -1,0 +1,4 @@
+FROM gemma4:e4b
+PARAMETER num_ctx 65536
+PARAMETER temperature 0.1
+PARAMETER num_gpu 99
