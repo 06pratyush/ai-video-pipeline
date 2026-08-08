@@ -1,7 +1,7 @@
 """Auto-update checker — polls GitHub Releases for newer versions."""
 import requests
 from fastapi import APIRouter
-from app.backend.main import VERSION
+from app.backend.version import VERSION
 
 router = APIRouter(prefix="/updates", tags=["updates"])
 

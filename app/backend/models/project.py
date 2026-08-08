@@ -25,3 +25,6 @@ class Project(Base):
 
     scenes = relationship("Scene", back_populates="project", cascade="all, delete-orphan")
     queue_items = relationship("QueueItem", back_populates="project", cascade="all, delete-orphan")
+    # Without this, deleting a project stranded its version rows, and every later
+    # query for them raised on a dangling project_id.
+    versions = relationship("ProjectVersion", back_populates="project", cascade="all, delete-orphan")

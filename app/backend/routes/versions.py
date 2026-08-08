@@ -11,7 +11,7 @@ from typing import Optional
 from app.backend.db import get_db
 from app.backend.models.project import Project
 from app.backend.models.scene import Scene
-from app.backend.models.project_version import ProjectVersion
+from app.backend.models.project_version import ProjectVersion, next_version_num
 
 router = APIRouter(prefix="/projects/{project_id}/versions", tags=["versions"])
 
@@ -79,11 +79,7 @@ def create_version(
         raise HTTPException(status_code=404, detail="Project not found")
 
     scenes = db.query(Scene).filter_by(project_id=project_id).order_by(Scene.index).all()
-    next_num = (
-        db.query(ProjectVersion)
-        .filter_by(project_id=project_id)
-        .count() + 1
-    )
+    next_num = next_version_num(db, project_id)
 
     # Archive final video into a versioned path
     archived_path = None
@@ -127,6 +123,26 @@ def restore_version(project_id: str, version_id: str, db: Session = Depends(get_
     if not p:
         raise HTTPException(status_code=404, detail="Project not found")
 
+    # Snapshot the live state first. Restoring overwrites the project's script,
+    # narration and every scene prompt/seed in place; without this the user's
+    # current work is destroyed with no way back.
+    current_scenes = db.query(Scene).filter_by(project_id=project_id).order_by(Scene.index).all()
+    backup_num = next_version_num(db, project_id)
+    backup = ProjectVersion(
+        id=str(uuid.uuid4()),
+        project_id=project_id,
+        version_num=backup_num,
+        label=f"Auto-backup before restoring v{v.version_num}",
+        snapshot=json.dumps(_snapshot_project(p, current_scenes)),
+        # Deliberately not pointing at the live p.final_path: delete_version unlinks
+        # final_path, so sharing the path would let deleting this backup destroy the
+        # project's current video. Restore does not modify the video anyway.
+        final_path=None,
+        duration=int(p.audio_duration) if p.audio_duration else None,
+    )
+    db.add(backup)
+    db.flush()  # reserve the version number within this transaction
+
     snap = json.loads(v.snapshot)
     p.script     = snap.get("script", p.script)
     p.narration  = snap.get("narration", p.narration)
@@ -143,7 +159,7 @@ def restore_version(project_id: str, version_id: str, db: Session = Depends(get_
             s.seed   = snap_scenes[s.index].get("seed")
 
     db.commit()
-    return {"restored": v.version_num}
+    return {"restored": v.version_num, "backup_version": backup_num}
 
 
 @router.delete("/{version_id}")

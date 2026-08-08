@@ -88,7 +88,10 @@ export const api = {
     create: (projectId: string, label?: string) =>
       req<ProjectVersion>('POST', `/projects/${projectId}/versions/`, { label }),
     restore: (projectId: string, versionId: string) =>
-      req<{ restored: number }>('POST', `/projects/${projectId}/versions/${versionId}/restore`),
+      // backup_version: the auto-snapshot taken of the pre-restore state, so the
+      // UI can tell the user how to get their previous work back.
+      req<{ restored: number; backup_version: number }>(
+        'POST', `/projects/${projectId}/versions/${versionId}/restore`),
     delete: (projectId: string, versionId: string) =>
       req('DELETE', `/projects/${projectId}/versions/${versionId}`),
   },
@@ -180,7 +183,7 @@ export interface Project {
   skill_id: string | null
   voice: string
   num_scenes: number
-  status: 'idle' | 'queued' | 'running' | 'done' | 'error'
+  status: 'idle' | 'queued' | 'running' | 'done' | 'error' | 'cancelled'
   created_at: string
   updated_at: string
   audio_duration: number | null

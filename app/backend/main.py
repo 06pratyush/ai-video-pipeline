@@ -26,7 +26,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="AI Video Studio",
     description="Backend daemon for AI Video Studio desktop app",
-    version="1.0.0",
+    version=VERSION,
     lifespan=lifespan,
 )
 

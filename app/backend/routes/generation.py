@@ -50,10 +50,18 @@ async def progress_ws(websocket: WebSocket, project_id: str):
             await asyncio.sleep(30)
             await websocket.send_text(json.dumps({"ping": True}))
     except WebSocketDisconnect:
-        if project_id in _ws_clients:
-            _ws_clients[project_id] = [
-                w for w in _ws_clients[project_id] if w is not websocket
-            ]
+        pass
+    except Exception as e:  # noqa: BLE001 - any transport fault still has to deregister
+        print(f"[WS] Progress socket for {project_id} closed unexpectedly: {e}")
+    finally:
+        # Deregister in `finally`: cleaning up only on WebSocketDisconnect leaked a
+        # dead socket into _ws_clients on any other error, and broadcast_progress
+        # then retried it on every emit, forever.
+        remaining = [w for w in _ws_clients.get(project_id, []) if w is not websocket]
+        if remaining:
+            _ws_clients[project_id] = remaining
+        else:
+            _ws_clients.pop(project_id, None)
 
 
 class RenderOpts(BaseModel):

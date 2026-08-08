@@ -69,9 +69,11 @@ export const useQueueStore = create<QueueStore>((set, get) => ({
     if (msg.ping) return
     set((s) => ({ progress: { ...s.progress, [msg.project_id]: msg } }))
 
-    if (msg.status === 'done' || msg.status === 'error') {
+    // 'cancelled' is terminal too. Omitting it left the UI pinned to "running"
+    // forever after a cancel, with the socket still open.
+    if (msg.status === 'done' || msg.status === 'error' || msg.status === 'cancelled') {
       useProjectStore.getState().updateProjectLocally(msg.project_id, {
-        status: msg.status === 'done' ? 'done' : 'error',
+        status: msg.status,
       })
       if (msg.status === 'done') {
         useProjectStore.getState().fetchProjects()
