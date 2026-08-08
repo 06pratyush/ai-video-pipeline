@@ -1,4 +1,5 @@
-from sqlalchemy import Column, String, Integer, Text, DateTime, ForeignKey
+from sqlalchemy import Column, String, Integer, Text, DateTime, ForeignKey, func
+from sqlalchemy.orm import Session
 from datetime import datetime
 import uuid
 from app.backend.db import Base
@@ -20,3 +21,18 @@ class ProjectVersion(Base):
     thumbnail    = Column(String, nullable=True)
     duration     = Column(Integer, nullable=True)           # seconds
     created_at   = Column(DateTime, default=datetime.utcnow)
+
+def next_version_num(db: Session, project_id: str) -> int:
+    """
+    Next version number for a project, derived from the highest existing one.
+
+    Deriving it from a row count breaks after any deletion: with v1..v3 present,
+    deleting v2 makes the count 2 and the "next" number 3 — colliding with the live
+    v3 and overwriting its archived video at versions/v3/final.mp4.
+    """
+    highest = (
+        db.query(func.max(ProjectVersion.version_num))
+        .filter_by(project_id=project_id)
+        .scalar()
+    )
+    return (highest or 0) + 1

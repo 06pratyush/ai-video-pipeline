@@ -452,7 +452,9 @@ def _run_pipeline(queue_item_id: str, project_id: str):
             from pathlib import Path as _Path
             import shutil as _shutil, uuid as _uuid
 
-            next_num = db.query(ProjectVersion).filter_by(project_id=project_id).count() + 1
+            from app.backend.models.project_version import next_version_num
+
+            next_num = next_version_num(db, project_id)
             archived_path = None
             if _Path(final_path).exists():
                 version_dir = _Path(f"app/projects/{project_id}/versions/v{next_num}")

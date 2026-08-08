@@ -11,7 +11,7 @@ from typing import Optional
 from app.backend.db import get_db
 from app.backend.models.project import Project
 from app.backend.models.scene import Scene
-from app.backend.models.project_version import ProjectVersion
+from app.backend.models.project_version import ProjectVersion, next_version_num
 
 router = APIRouter(prefix="/projects/{project_id}/versions", tags=["versions"])
 
@@ -79,11 +79,7 @@ def create_version(
         raise HTTPException(status_code=404, detail="Project not found")
 
     scenes = db.query(Scene).filter_by(project_id=project_id).order_by(Scene.index).all()
-    next_num = (
-        db.query(ProjectVersion)
-        .filter_by(project_id=project_id)
-        .count() + 1
-    )
+    next_num = next_version_num(db, project_id)
 
     # Archive final video into a versioned path
     archived_path = None
