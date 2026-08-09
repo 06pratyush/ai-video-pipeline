@@ -85,3 +85,16 @@
   - `db.py` honours `AIVS_DB_PATH` so tests never touch the real database.
 - **Verification:** Backend boots (62 routes); all 20 GET endpoints return 200; project→version→delete→restore→delete-project lifecycle exercised over live HTTP; version collision, restore backup, cascade, crash recovery and cross-session cancellation each verified; `tsc --noEmit` clean; 11/11 integrity tests pass. User's existing project row left intact and all test data removed.
 - **Context Modifications:** Added `app/backend/tests/test_data_integrity.py`, `app/backend/models/project_version.next_version_num`, `generation_queue.recover_orphaned_items`, `AIVS_DB_PATH` env override, and the `.orchestrator/` delegation harness.
+
+---
+
+- **Timestamp:** 2026-08-09T02:00:00Z
+- **Trigger Event:** Pull Request Merge
+- **Author/Agent:** Claude Opus 5 (Master Orchestrator) for 06pratyush
+- **Target Subsystem:** `.github/workflows/`
+- **Intent:** Enforce the Continuous Synchronization Mandate in CI. `CONTEXT.md` already existed and was already being maintained by hand; this makes it impossible to skip.
+- **Bugs Discovered:** None — no application code was touched. The generation pipeline, API surface and database layer are unchanged.
+- **Fixes Applied:** N/A.
+- **Verification:** No test run required or performed — the change adds a workflow file and this log entry, and touches no Python, TypeScript or configuration the application loads. The workflow validates itself on the pull request that introduces it, because `pull_request` events evaluate workflows from the merge result.
+- **Context Modifications:** Added `.github/workflows/enforce-context-sync.yml`. It fails any pull request into `main` that does not add at least three lines to `CONTEXT.md`. Actions are referenced by tag (`@v4`) to match the existing `release.yml` in this repository; note that the companion gate on the `thehallucinatedlab` site repository pins by commit SHA instead, which is the stronger choice and worth adopting here when `release.yml` is next revised.
+- **Cross-repository note:** The same session published this project as **AI Video Studio** on https://thehallucinatedlab.space/solutions.html — a spotlight card, a `SoftwareApplication` JSON-LD node, and long-form coverage in `llms.txt` and `llms-full.txt` — across three pull requests in `The-Hallucinated-Lab/thehallucinatedlab` (#30, #31, #32). The site now states publicly that this application requires an NVIDIA GPU with CUDA plus a local ComfyUI and Wan 2.1 install, which matches [GAP-04] here: end-to-end render remains unverified in the development environment.
