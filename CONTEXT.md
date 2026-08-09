@@ -98,3 +98,15 @@
 - **Verification:** No test run required or performed — the change adds a workflow file and this log entry, and touches no Python, TypeScript or configuration the application loads. The workflow validates itself on the pull request that introduces it, because `pull_request` events evaluate workflows from the merge result.
 - **Context Modifications:** Added `.github/workflows/enforce-context-sync.yml`. It fails any pull request into `main` that does not add at least three lines to `CONTEXT.md`. Actions are referenced by tag (`@v4`) to match the existing `release.yml` in this repository; note that the companion gate on the `thehallucinatedlab` site repository pins by commit SHA instead, which is the stronger choice and worth adopting here when `release.yml` is next revised.
 - **Cross-repository note:** The same session published this project as **AI Video Studio** on https://thehallucinatedlab.space/solutions.html — a spotlight card, a `SoftwareApplication` JSON-LD node, and long-form coverage in `llms.txt` and `llms-full.txt` — across three pull requests in `The-Hallucinated-Lab/thehallucinatedlab` (#30, #31, #32). The site now states publicly that this application requires an NVIDIA GPU with CUDA plus a local ComfyUI and Wan 2.1 install, which matches [GAP-04] here: end-to-end render remains unverified in the development environment.
+
+---
+
+- **Timestamp:** 2026-08-09T02:30:00Z
+- **Trigger Event:** Pull Request Merge
+- **Author/Agent:** Claude Opus 5 (Master Orchestrator) for 06pratyush
+- **Target Subsystem:** `.orchestrator/session.md`
+- **Intent:** Record the session ledger for the publish-to-website work, so the routing decisions and the reader outage survive context compaction.
+- **Bugs Discovered:** Two defects in the supplied CI specification, both fixed before either gate shipped. (1) `runs-name:` was used as a job key — not valid GitHub Actions syntax; GitHub rejects the entire workflow file and surfaces a parse error on every pull request. Corrected to `name:`. (2) The specified check only asserted that `CONTEXT.md` appears in the diff, which a one-character edit satisfies; a minimum-added-lines assertion was added so the gate cannot be cleared by touching the file.
+- **Fixes Applied:** Both corrections are in `.github/workflows/enforce-context-sync.yml` here and in the companion workflow on the site repository.
+- **Verification:** Ledger only — no application code touched. The local Ollama reader was unavailable for the whole session (`ollama list` and `warm.sh` both hung past 120s and returned empty), so all file inspection was done directly, kept within the protocol's 100-line ceiling using targeted grep and line-range reads. No unit was delegated: with the reader down and every unit being judgment, prose, or CI configuration, the delegation packets would have been longer than the artifacts.
+- **Context Modifications:** Appended a session block to `.orchestrator/session.md`. No change to application code, dependencies, or the database schema.

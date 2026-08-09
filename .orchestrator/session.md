@@ -39,3 +39,47 @@ Goal: Fix all defects in the AI Video Studio pipeline; guarantee no data loss.
 - Did NOT add filesystem deletion on project delete. Orphaned media is a storage
   leak (logged as GAP-01), not data loss; adding recursive deletion would
   introduce new irreversible behaviour that was never requested.
+
+## Session 2026-08-09 — publish AI Video Studio to the website
+
+Goal: merge the pipeline data-integrity work, publish this project on
+thehallucinatedlab.space/solutions.html, and adopt the Continuous
+Synchronization Mandate in both repositories.
+
+### Reader status
+`ollama list` and `warm.sh` both hung past 120s and returned empty.
+The reader was never resident this session. Fell back to direct reading
+throughout, per §11.1. Kept inside the 100-line ceiling by using Grep
+and targeted `sed -n` ranges rather than whole-file reads — the only
+files read in full were under 100 lines. No ceiling breach.
+
+### Units
+| # | Task | Route | Attempts | Status | Notes |
+|---|------|-------|----------|--------|-------|
+| 1 | Site CONTEXT.md manifest | RETAIN | 1 | merged (site #30) | Architecture + honest gap list; judgment work, not transcription |
+| 2 | Context-sync CI gate (site) | RETAIN | 1 | merged (site #30) | CI/irreversible — never delegated (§15) |
+| 3 | Solutions spotlight card | RETAIN | 1 | merged (site #31) | Product copy; delegation packet would exceed the output (§4 RETAIN-7) |
+| 4 | JSON-LD + meta description | RETAIN | 1 | merged (site #31) | Structured-data honesty is a correctness claim |
+| 5 | llms.txt / llms-full.txt | RETAIN | 1 | merged (site #32) | Written work — explicitly ours under §11.4 |
+| 6 | Context-sync CI gate (pipeline) | RETAIN | 1 | merged (pipeline #1) | Same reasoning as unit 2 |
+
+Nothing was delegated. With the reader down and every unit being either
+judgment, prose, or CI configuration, delegation would have been theater
+(§15) — the packets would have been longer than the artifacts.
+
+### Failure patterns
+- The supplied workflow spec used `runs-name:` as a job key. Invalid
+  Actions syntax; GitHub rejects the whole file and shows a parse error
+  on every PR. Corrected to `name:` in both repositories.
+- The supplied spec checked only that CONTEXT.md appears in the diff.
+  A one-character edit satisfies that. Added a minimum-added-lines check.
+
+### Decisions
+- Three sequential PRs per repository rather than parallel branches:
+  every PR must touch CONTEXT.md section 5, which is append-only, so
+  concurrent branches would have conflicted at the file tail by
+  construction. Each branch was cut only after the previous merged.
+- Declined to write `thl solutions install aivideostudio` on the new
+  card. The subcommand does not exist in the Python package. The two
+  pre-existing instances are logged as site GAP-06 rather than silently
+  matched.
