@@ -1,0 +1,109 @@
+name: Feature request
+description: Propose a new capability, Skill, voice, or quality option
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the idea.
+
+        One thing worth knowing before you write: this project has **one rule with no
+        exceptions** — everything runs locally. No cloud calls, no telemetry, no accounts, no
+        remote licence checks. A feature that needs a hosted service will be declined however
+        good it is, so it is worth checking your idea against that first.
+
+        If you intend to implement this yourself, say so — that changes the conversation from
+        "should this exist" to "how should it work", and it is the point at which a maintainer
+        will agree the design with you before you write code.
+
+  - type: checkboxes
+    id: preflight
+    attributes:
+      label: Before you file
+      options:
+        - label: I searched [existing issues](https://github.com/06pratyush/ai-video-pipeline/issues?q=is%3Aissue) and this has not been proposed
+          required: true
+        - label: This does not require a cloud service, an API key, or an account
+          required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem would this solve?
+      description: |
+        Describe the situation you are in, not the feature you want. "I need X" is harder to
+        evaluate than "when I do Y, Z happens, and I have to work around it by…", and the second
+        often has a better solution than the one either of us thought of first.
+      placeholder: |
+        I produce weekly 10-minute podcast recaps. Long-form mode splits them correctly, but
+        every chunk gets an independently generated music bed, so the score restarts audibly
+        every 90 seconds in the final cut.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What would you like to happen?
+      description: Your proposed behaviour, in enough detail to argue about.
+      placeholder: |
+        An option on long-form projects to generate one music bed for the whole script and
+        stretch or loop it across chunks, rather than per chunk.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Which area does this touch?
+      options:
+        - "Not sure"
+        - "A new Skill (style preset)"
+        - "Voices / TTS"
+        - "Music"
+        - "Subtitles"
+        - "Video generation / models"
+        - "Quality options (interpolation, upscaling, grading)"
+        - "Long-form mode"
+        - "Templates / batch / version history"
+        - "UI / UX"
+        - "Install and setup"
+        - "Performance / VRAM"
+        - "API or backend architecture"
+        - "Documentation"
+        - "Other"
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: What have you tried, or what else would work?
+      description: |
+        Workarounds you are using now, and any alternative designs you considered. If you
+        rejected a simpler approach, saying why saves a round trip.
+    validations:
+      required: false
+
+  - type: dropdown
+    id: contribution
+    attributes:
+      label: Would you be willing to implement it?
+      description: Completely fine to say no — this is for planning, not an obligation.
+      options:
+        - "No, just proposing the idea"
+        - "Maybe, with guidance on where it belongs"
+        - "Yes, I intend to open a pull request"
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Anything else?
+      description: |
+        Mockups, reference output from other tools, links to a model or library that would be
+        needed, and whether this matters for a specific GPU tier or platform.
+    validations:
+      required: false

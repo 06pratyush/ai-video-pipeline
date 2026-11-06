@@ -4,7 +4,7 @@
 
 # AI Video Studio
 
-### Generate cinematic videos from text — fully local, fully autonomous, fully yours.
+### Open-source AI video generator — text script to finished MP4, entirely on your own GPU.
 
 *Turn a script into a narrated, professionally-edited video. No cloud. No subscriptions. No API keys.  
 Your machine is the only computer in the loop.*
@@ -26,9 +26,37 @@ Your machine is the only computer in the loop.*
 [**Quick Start**](#quick-start) &nbsp;·&nbsp;
 [**Skills**](#skills) &nbsp;·&nbsp;
 [**Architecture**](#architecture) &nbsp;·&nbsp;
+[**FAQ**](#faq) &nbsp;·&nbsp;
+[**Contributing**](CONTRIBUTING.md) &nbsp;·&nbsp;
 [**Issues**](https://github.com/06pratyush/ai-video-pipeline/issues)
 
 </div>
+
+---
+
+## What is AI Video Studio?
+
+**AI Video Studio is a free, open-source, local AI video generator for Windows, Linux and macOS.**
+You paste a text script, pick a style preset, and it produces a finished MP4 — narrated, scored,
+subtitled and colour-graded — entirely on your own GPU. No cloud rendering, no API keys, no
+subscription, and no footage ever leaves your machine.
+
+It is a self-hosted alternative to hosted text-to-video services such as Runway, Pika and Sora, for
+people who need offline operation, unlimited renders, or full control over their content pipeline.
+Every stage is local: [Wan2.1](https://github.com/Wan-AI/Wan2.1) renders the video through
+[ComfyUI](https://github.com/comfyanonymous/ComfyUI), [Gemma](https://ai.google.dev/gemma) via
+[Ollama](https://ollama.com) rewrites your script into scene prompts,
+[Kokoro TTS](https://github.com/hexgrad/kokoro) speaks the narration,
+[faster-whisper](https://github.com/SYSTRAN/faster-whisper) writes the subtitles,
+[MusicGen](https://github.com/facebookresearch/audiocraft) scores it, and
+[FFmpeg](https://ffmpeg.org) assembles the result.
+
+| | |
+|---|---|
+| **Use it for** | YouTube explainers · TikTok / Reels / Shorts · documentary narration · product demos · tutorials · news recaps |
+| **Runs on** | Windows 10/11 · Ubuntu 22.04+ · macOS 12+ · NVIDIA GPU with 8 GB VRAM (16 GB+ recommended) |
+| **Costs** | Nothing — MIT licensed, no account, no metering, no telemetry |
+| **Docs** | [Architecture](#architecture) · [Skills](#skills) · [Build from source](#build-from-source) · [Troubleshooting](#troubleshooting) · [FAQ](#faq) · [Contributing](CONTRIBUTING.md) · [Review & merge policy](REVIEW_AND_MERGE.md) |
 
 ---
 
@@ -423,21 +451,105 @@ Open an issue on GitHub if you hit a symptom not covered above — include OS, G
 
 ## Contributing
 
-Contributions welcome — especially:
+Contributions are welcome, and the full guide lives in **[CONTRIBUTING.md](CONTRIBUTING.md)** —
+development setup, code style, how to add a Skill or a pipeline module, and how to raise a pull
+request. How that request is then reviewed, approved and merged is documented separately in
+**[REVIEW_AND_MERGE.md](REVIEW_AND_MERGE.md)**.
 
-- New Skills (just add a JSON file to `app/skills/`)
-- Additional FFmpeg post-processing presets in `pipeline/ffmpeg_merger.py`
-- Real-ESRGAN and RIFE ComfyUI node integrations to replace the FFmpeg fallbacks
-- Voice cloning via XTTS / Tortoise TTS
-- AMD ROCm support for Wan2.1
-- Mobile companion app for triggering renders from a phone
+Good places to start, roughly easiest first:
 
-Process:
+| Area | What is wanted |
+|------|----------------|
+| **New Skills** | A JSON preset in `app/skills/` — no Python needed. See [Adding a Skill](CONTRIBUTING.md#adding-a-skill) |
+| **Colour grades** | Extra FFmpeg post-processing presets in `pipeline/ffmpeg_merger.py` |
+| **Docs & troubleshooting** | Symptoms you hit that [Troubleshooting](#troubleshooting) does not cover |
+| **Tests** | Automated coverage is a Phase 9 goal; `app/backend/tests/` is the beachhead |
+| **Real-ESRGAN / RIFE nodes** | Native ComfyUI node integrations to replace the FFmpeg fallbacks |
+| **AMD ROCm support** | A working Wan2.1 path for non-NVIDIA GPUs |
+| **Mobile companion** | Trigger and monitor renders from a phone |
 
-1. Open an issue describing the change before starting large work
-2. Fork → feature branch → PR against `main`
-3. Run `npm run typecheck` in `app/frontend/` and ensure the backend boots with `python -m uvicorn app.backend.main:app`
-4. Include a brief test plan in the PR description
+Before starting anything large, [open an issue](https://github.com/06pratyush/ai-video-pipeline/issues/new/choose)
+so the design can be agreed first — that is the step that most often saves a rewrite.
+
+New here? Issues labelled [`good first issue`](https://github.com/06pratyush/ai-video-pipeline/labels/good%20first%20issue)
+are scoped to be completable without knowing the whole pipeline.
+
+---
+
+## FAQ
+
+<details>
+<summary><b>Is AI Video Studio free?</b></summary>
+
+Yes. It is MIT licensed and free permanently. There is no account, no metering, no paid tier and no
+telemetry. The only costs are your electricity and disk space.
+
+</details>
+
+<details>
+<summary><b>Does it work offline?</b></summary>
+
+Yes, after setup. First launch downloads roughly 20 GB of models and needs a connection. After that
+every render runs entirely on your machine and you can stay disconnected permanently. The only
+outbound request the app ever makes is an optional update check against GitHub Releases.
+
+</details>
+
+<details>
+<summary><b>Do I need an NVIDIA GPU?</b></summary>
+
+For usable speed, yes — 8 GB VRAM minimum, 16 GB or more recommended. CPU-only mode runs but is
+roughly 10x slower, which means hours rather than minutes per video. AMD GPUs are not supported yet
+because Wan2.1 has no ROCm path.
+
+</details>
+
+<details>
+<summary><b>How long does one video take to generate?</b></summary>
+
+Five to fifteen minutes for a typical 30–60 second video on a 16 GB GPU, after a one-time setup of
+about 17 minutes. Each quality option adds to that: frame interpolation +30%, upscaling +20%, music
+about 30s per scene, subtitles about 10s per minute of audio.
+
+</details>
+
+<details>
+<summary><b>How is this different from Runway, Pika or Sora?</b></summary>
+
+Those are hosted services: you submit a prompt, their GPUs render it, and you pay per generation
+under their content policy. AI Video Studio runs the same class of pipeline on hardware you own, so
+you get unlimited renders, no upload, no content review and no recurring cost — in exchange for
+needing a capable GPU and the patience for a local render.
+
+</details>
+
+<details>
+<summary><b>Can I use the generated videos commercially?</b></summary>
+
+The application is MIT licensed, so the code is yours to use. Output rights depend on the models you
+run — Wan2.1, Gemma, Kokoro, MusicGen and Whisper each carry their own licence. Check each model's
+terms against your intended use; this project cannot grant rights it does not hold.
+
+</details>
+
+<details>
+<summary><b>Where are my videos stored?</b></summary>
+
+Under `app/projects/<project-id>/` beside the application, indexed by an SQLite database at
+`app/backend/db.sqlite`. Nothing is uploaded. Note that deleting a project removes its database rows
+but leaves the media on disk — a known shortcoming tracked as GAP-01 in [CONTEXT.md](CONTEXT.md).
+
+</details>
+
+<details>
+<summary><b>Can I add my own voice or visual style?</b></summary>
+
+Yes. Voices clone from a reference clip through XTTS v2 in the Voices panel. Visual styles are
+"Skills" — plain JSON files in `app/skills/` bundling voice, pacing, aspect ratio, music mood and the
+FFmpeg post-processing chain. Copy one and edit it; see [Skills](#skills) and
+[Adding a Skill](CONTRIBUTING.md#adding-a-skill).
+
+</details>
 
 ---
 
@@ -491,7 +603,7 @@ Built on the shoulders of these excellent open-source projects:
 <sub>
 <a href="https://github.com/06pratyush/ai-video-pipeline/stargazers">Star this repo</a> if it's useful ·
 <a href="https://github.com/06pratyush/ai-video-pipeline/issues">Report an issue</a> ·
-<a href="https://github.com/06pratyush/ai-video-pipeline/discussions">Discuss</a>
+<a href="https://github.com/06pratyush/ai-video-pipeline/issues/new?template=question.yml">Ask a question</a>
 </sub>
 
 <br><br>

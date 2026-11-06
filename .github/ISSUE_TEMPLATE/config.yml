@@ -1,0 +1,22 @@
+# Blank issues are disabled so every report arrives with the fields that make it
+# actionable. The three forms below cover bugs, feature requests and questions;
+# anything that fits none of them belongs in a question, and a maintainer will
+# relabel it.
+blank_issues_enabled: false
+
+contact_links:
+  - name: Security vulnerability (do not use the issue tracker)
+    url: https://github.com/06pratyush/ai-video-pipeline/security/advisories/new
+    about: Report privately through a GitHub security advisory. See SECURITY.md for the threat model and what is in scope.
+
+  - name: Render failing or app will not start?
+    url: https://github.com/06pratyush/ai-video-pipeline#troubleshooting
+    about: Check Troubleshooting first — most failures are VRAM exhaustion, a missing ComfyUI install, or a CUDA version mismatch.
+
+  - name: Want to contribute code?
+    url: https://github.com/06pratyush/ai-video-pipeline/blob/main/CONTRIBUTING.md
+    about: Development setup, code style, how to add a Skill or pipeline module, and how to raise a pull request.
+
+  - name: How does review and merging work?
+    url: https://github.com/06pratyush/ai-video-pipeline/blob/main/REVIEW_AND_MERGE.md
+    about: What blocks a merge, how review comments are prioritised, response-time targets, and the release process.

@@ -1,0 +1,146 @@
+name: Bug report
+description: Something is broken — a crash, a failed render, or wrong output
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report this.
+
+        Most unactionable reports are missing the same three things: GPU, VRAM and the exact
+        steps. The required fields below exist so your report can be worked on from the first
+        reply rather than the fourth.
+
+        **Found a security vulnerability?** Do not file it here — follow
+        [SECURITY.md](https://github.com/06pratyush/ai-video-pipeline/blob/main/SECURITY.md).
+
+  - type: checkboxes
+    id: preflight
+    attributes:
+      label: Before you file
+      options:
+        - label: I searched [existing issues](https://github.com/06pratyush/ai-video-pipeline/issues?q=is%3Aissue) and this is not a duplicate
+          required: true
+        - label: I am on the latest [release](https://github.com/06pratyush/ai-video-pipeline/releases/latest), or I am running from source at a commit I can name
+          required: true
+        - label: I checked the Troubleshooting section of the README
+          required: false
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What you saw, and what you expected instead.
+      placeholder: |
+        The render reached stage 4 (video clips) and then the queue item stayed
+        on "running" forever. I expected it to either finish or fail with an error.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      description: Numbered, from a fresh launch. This is the single most useful field here.
+      placeholder: |
+        1. Launch the app and click "+ New Project"
+        2. Paste a 2-sentence script
+        3. Pick the "Social Short" Skill
+        4. Enable Subtitles and Upscaling
+        5. Hit Generate Video
+        6. At roughly 60% the progress bar stops and never moves again
+    validations:
+      required: true
+
+  - type: dropdown
+    id: stage
+    attributes:
+      label: Which pipeline stage fails?
+      description: If you are not sure, pick "Not sure" — the logs will tell us.
+      options:
+        - "Not sure"
+        - "Install / first-run setup"
+        - "1 — Narration refinement (Gemma / Ollama)"
+        - "2 — Scene prompt generation (Gemma / Ollama)"
+        - "3 — Voice synthesis (Kokoro TTS)"
+        - "4 — Video clips (Wan2.1 / ComfyUI)"
+        - "5 — Background music (MusicGen)"
+        - "6 — Subtitles (faster-whisper)"
+        - "7 — Interpolation / upscaling (FFmpeg)"
+        - "8 — Colour grade and mux (FFmpeg)"
+        - "App UI — never reached a render"
+        - "Other / not a render"
+    validations:
+      required: true
+
+  - type: input
+    id: gpu
+    attributes:
+      label: GPU and VRAM
+      description: Exact model and VRAM. Most render failures are VRAM exhaustion, so this decides the first thing we look at.
+      placeholder: "NVIDIA RTX 3060, 12 GB"
+    validations:
+      required: true
+
+  - type: input
+    id: os
+    attributes:
+      label: Operating system
+      placeholder: "Windows 11 24H2 / Ubuntu 24.04 / macOS 14.5 (Apple Silicon)"
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: AI Video Studio version
+      description: From the title bar, or the commit SHA if running from source.
+      placeholder: "1.0.0 (installer) — or commit 884eef3"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: install-method
+    attributes:
+      label: How did you install it?
+      options:
+        - "Windows installer (.exe)"
+        - "Windows portable (.exe)"
+        - "Linux AppImage"
+        - "Linux .deb"
+        - "macOS DMG"
+        - "From source (start.bat / start.sh)"
+        - "From source (manual venv + npm)"
+    validations:
+      required: true
+
+  - type: input
+    id: ram-disk
+    attributes:
+      label: RAM and free disk
+      placeholder: "32 GB RAM, 140 GB free"
+    validations:
+      required: false
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs and error output
+      description: |
+        Paste the backend console output around the failure. Please redact absolute paths
+        containing your username if you would rather not share them.
+      render: shell
+    validations:
+      required: false
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Anything else?
+      description: |
+        Screenshots or a clip for visual problems, whether it is reproducible every time or
+        intermittent, whether it worked in an earlier version, and anything unusual about your
+        setup — a non-default ComfyUI install, a custom Skill, an external model path.
+    validations:
+      required: false
