@@ -5,6 +5,10 @@
 blank_issues_enabled: false
 
 contact_links:
+  - name: Question, idea, or just want to talk it through?
+    url: https://github.com/06pratyush/ai-video-pipeline/discussions
+    about: Discussions is the better home for open-ended questions, hardware advice and half-formed ideas. The issue tracker is for things that are broken or specifically proposed.
+
   - name: Security vulnerability (do not use the issue tracker)
     url: https://github.com/06pratyush/ai-video-pipeline/security/advisories/new
     about: Report privately through a GitHub security advisory. See SECURITY.md for the threat model and what is in scope.

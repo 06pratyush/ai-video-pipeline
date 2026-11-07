@@ -603,7 +603,7 @@ Built on the shoulders of these excellent open-source projects:
 <sub>
 <a href="https://github.com/06pratyush/ai-video-pipeline/stargazers">Star this repo</a> if it's useful ·
 <a href="https://github.com/06pratyush/ai-video-pipeline/issues">Report an issue</a> ·
-<a href="https://github.com/06pratyush/ai-video-pipeline/issues/new?template=question.yml">Ask a question</a>
+<a href="https://github.com/06pratyush/ai-video-pipeline/discussions">Ask a question</a>
 </sub>
 
 <br><br>

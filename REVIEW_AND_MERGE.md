@@ -255,6 +255,17 @@ one who presses the button, so that approval and merge are never separated.
 
 ### Required before merge
 
+These are **enforced by branch protection on `main`**, not merely agreed: one approving review,
+a passing `CONTEXT.md is in sync` check, resolved conversations, a branch up to date with `main`,
+and linear history — so merge commits are refused and squash or rebase is the only way in. Stale
+approvals are dismissed when new commits are pushed.
+
+Repository administrators retain a bypass, because this project is small enough to have exactly one
+maintainer much of the time and GitHub does not permit approving your own pull request. That bypass
+is what the [maintainer section](#for-maintainers) governs: it is for `docs/`, `chore/` and `fix/`
+work with the verification stated, and using it for anything else is the failure this document
+exists to prevent.
+
 1. One maintainer approval (two for queue, schema or restore changes)
 2. All checks green, including Context Sync
 3. No unresolved **blocking:** comments

@@ -6,8 +6,12 @@ body:
   - type: markdown
     attributes:
       value: |
-        Ask away. Two things that will get you a faster answer:
+        Ask away. Three things that will get you a faster answer:
 
+        - For an **open-ended** question — hardware advice, "has anyone tried…", a half-formed
+          idea — [Discussions](https://github.com/06pratyush/ai-video-pipeline/discussions) is the
+          better home, and other users can answer there too. This form is fine for a specific
+          question you want tracked.
         - If something is **failing**, the [bug report](https://github.com/06pratyush/ai-video-pipeline/issues/new?template=bug_report.yml)
           form is the better fit — it collects the GPU and VRAM details we would otherwise have to
           ask for.
