@@ -1,0 +1,99 @@
+# AI Video Studio
+
+> AI Video Studio is a free, open-source, local AI video generator for Windows, Linux and macOS.
+> It turns a text script into a finished MP4 — narrated, scored, subtitled and colour-graded —
+> entirely on the user's own GPU, with no cloud rendering, no API keys and no subscription. It is a
+> self-hosted alternative to hosted text-to-video services such as Runway, Pika and Sora.
+
+AI Video Studio is an Electron + React desktop application over a local FastAPI daemon. A text
+script is refined into scene prompts by Gemma (served by Ollama), rendered to video clips by Wan2.1
+through ComfyUI, narrated by Kokoro TTS, subtitled by faster-whisper, scored by MusicGen, and
+assembled by FFmpeg. Nothing leaves the machine; there is no telemetry and no account.
+
+Repository: https://github.com/06pratyush/ai-video-pipeline
+Project page: https://thehallucinatedlab.space/solutions.html
+
+## Key facts
+
+- **Licence:** MIT. Free permanently — no paid tier, no metering, no account, no telemetry.
+- **Hardware:** NVIDIA GPU with 8 GB VRAM minimum, 16 GB or more recommended; 16 GB RAM
+  (32 GB recommended); 30 GB free disk (100 GB recommended). CPU-only mode works but runs roughly
+  10x slower. AMD GPUs are not supported because Wan2.1 has no ROCm path.
+- **Render time:** 5–15 minutes for a 30–60 second video on a 16 GB GPU, after a one-time setup of
+  about 17 minutes that downloads roughly 20 GB of models.
+- **Platforms:** Windows 10/11 (NSIS installer or portable .exe), Linux (AppImage or .deb),
+  macOS 12+ (DMG for Apple Silicon or Intel).
+- **Runtime:** Python 3.10+ (3.11 recommended) and Node.js 18 LTS+ (20 LTS recommended). The
+  backend daemon binds to 127.0.0.1:7860 only and has no authentication by design.
+- **Offline:** fully offline after the first-run model download, apart from an optional update
+  check against GitHub Releases.
+- **Output rights:** the application code is MIT, but generated video is governed by the licences of
+  the underlying models (Wan2.1, Gemma, Kokoro, MusicGen, Whisper), which must be checked separately.
+
+## Pipeline stages
+
+The generation pipeline runs eight stages on a background worker thread, persisted in SQLite so the
+queue survives restarts:
+
+1. **Narration refinement** — Gemma 3 / 4B via Ollama rewrites the user's script (~10s).
+2. **Scene prompt generation** — Gemma 3 / 4B derives per-scene visual prompts (~10s).
+3. **Voice synthesis** — Kokoro TTS, 8 voices (~5s per 100 words).
+4. **Video clips** — Wan2.1 1.3B or 14B via ComfyUI, selected by available VRAM (~3min per scene).
+5. **Background music** — MusicGen Small, mood-matched, auto-ducked (optional, ~30s per scene).
+6. **Subtitles** — faster-whisper Base transcription burned in by FFmpeg (optional, ~10s per audio minute).
+7. **Frame interpolation and upscaling** — FFmpeg minterpolate to 30fps and super2xbr 2x to 1080p,
+   with RIFE and Real-ESRGAN as swap-in replacements (optional, +30% and +20% render time).
+8. **Colour grade and mux** — FFmpeg curves, eq, film grain and concat (~30s).
+
+## Built-in style presets ("Skills")
+
+A Skill is a JSON preset bundling voice, speed, scene pacing, aspect ratio, resolution, music mood
+and an FFmpeg post-processing chain. Seven ship by default: Documentary (British male, slow, 16:9),
+Explainer (American female, medium, 16:9), Product Showcase (American male, medium, 1:1), Cinematic
+Story (British male, slow, 16:9), Social Short (American female, fast, 9:16, subtitles on),
+Tutorial (American female, medium, 16:9) and News Brief (American male, fast, 16:9). Custom Skills
+are JSON files in `app/skills/`.
+
+## Architecture
+
+Three tiers, each independently replaceable:
+
+- **Electron frontend** — React 18, Vite, Zustand, Tailwind CSS. Project library, script editor,
+  render panel, live VRAM meter, model and template browsers, batch modal.
+- **Python backend daemon** — FastAPI, SQLAlchemy 2.0, uvicorn. A persistent generation queue,
+  VRAM-aware model lifecycle with fallback routing, a scene cache keyed on
+  sha256(prompt+seed+model+resolution), 11 REST routes and one WebSocket progress stream.
+- **Local model runtimes** — ComfyUI (Wan2.1), Ollama (Gemma) and FFmpeg, started lazily and only
+  stopped if this application started them.
+
+Also included: reusable templates, automatic per-render version snapshots with restore, long-form
+mode that chunks long scripts into 60–90 second sub-projects, XTTS v2 voice cloning from a reference
+clip, and batch generation that queues up to 10 projects to render sequentially.
+
+## Documentation
+
+- [README](https://github.com/06pratyush/ai-video-pipeline/blob/main/README.md): what the project
+  is, install instructions, system requirements, quick start, the eight pipeline stages, the Skills
+  and quality settings tables, architecture diagram, build-from-source steps, troubleshooting and an FAQ.
+- [CONTEXT.md](https://github.com/06pratyush/ai-video-pipeline/blob/main/CONTEXT.md): the system
+  manifest — stack matrix, architectural rules, known shortcomings, and an append-only timeline of
+  every change that reached main.
+
+## Contributing and governance
+
+- [Contributing guide](https://github.com/06pratyush/ai-video-pipeline/blob/main/CONTRIBUTING.md):
+  development setup, Python and TypeScript code style, how to add a Skill or a pipeline module,
+  architecture conventions, and how to raise a pull request.
+- [Review and merge policy](https://github.com/06pratyush/ai-video-pipeline/blob/main/REVIEW_AND_MERGE.md):
+  how pull requests are reviewed, what blocks a merge, review comment severities, response times,
+  the squash-merge rule and the release process.
+- [Code of conduct](https://github.com/06pratyush/ai-video-pipeline/blob/main/CODE_OF_CONDUCT.md)
+- [Security policy](https://github.com/06pratyush/ai-video-pipeline/blob/main/SECURITY.md): how to
+  report a vulnerability, and the threat model of a localhost-only daemon with no authentication.
+
+## Optional
+
+- [Releases](https://github.com/06pratyush/ai-video-pipeline/releases) — installers for Windows,
+  Linux and macOS.
+- [Issues](https://github.com/06pratyush/ai-video-pipeline/issues) ·
+  [good first issue](https://github.com/06pratyush/ai-video-pipeline/labels/good%20first%20issue)

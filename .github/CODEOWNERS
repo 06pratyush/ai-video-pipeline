@@ -1,0 +1,37 @@
+# Code owners for AI Video Studio
+#
+# GitHub uses this to request reviews automatically when a pull request touches
+# a matching path. The last matching pattern wins, so the specific entries below
+# override the catch-all.
+#
+# Note: auto-assignment happens on its own, but code-owner review is only
+# *required* to merge once branch protection on `main` enables
+# "Require review from Code Owners". See REVIEW_AND_MERGE.md.
+
+# Everything, unless a more specific rule matches.
+*                                   @06pratyush
+
+# Data-integrity paths. REVIEW_AND_MERGE.md asks for a second reviewer on these,
+# because a mistake here destroys a user's work rather than just breaking a build:
+# the generation queue, the ORM models and migrations, and version restore.
+/app/backend/services/generation_queue.py   @06pratyush
+/app/backend/models/                        @06pratyush
+/app/backend/db.py                          @06pratyush
+/app/backend/routes/versions.py             @06pratyush
+
+# The local-first guarantee lives or dies in the pipeline wrappers and the
+# installer, which are the only places that legitimately touch the network.
+/app/backend/pipeline/              @06pratyush
+/installer/                         @06pratyush
+
+# CI, release automation, and the CONTEXT.md sync gate.
+/.github/                           @06pratyush
+
+# Governance and the published documentation surface.
+/CONTEXT.md                         @06pratyush
+/CONTRIBUTING.md                    @06pratyush
+/REVIEW_AND_MERGE.md                @06pratyush
+/CODE_OF_CONDUCT.md                 @06pratyush
+/SECURITY.md                        @06pratyush
+/README.md                          @06pratyush
+/llms.txt                           @06pratyush

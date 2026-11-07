@@ -1,0 +1,40 @@
+name: Question or help
+description: Ask how something works, or get help with a setup that is not obviously broken
+title: "[Question]: "
+labels: ["question"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Ask away. Three things that will get you a faster answer:
+
+        - For an **open-ended** question — hardware advice, "has anyone tried…", a half-formed
+          idea — [Discussions](https://github.com/06pratyush/ai-video-pipeline/discussions) is the
+          better home, and other users can answer there too. This form is fine for a specific
+          question you want tracked.
+        - If something is **failing**, the [bug report](https://github.com/06pratyush/ai-video-pipeline/issues/new?template=bug_report.yml)
+          form is the better fit — it collects the GPU and VRAM details we would otherwise have to
+          ask for.
+        - If it is about **hardware suitability** ("will this run on my card?"), include the GPU
+          and VRAM below and you will get a direct answer.
+
+  - type: textarea
+    id: question
+    attributes:
+      label: What would you like to know?
+    validations:
+      required: true
+
+  - type: textarea
+    id: tried
+    attributes:
+      label: What have you already read or tried?
+      description: |
+        The README, the FAQ, an existing issue, a setting you experimented with. This stops us
+        sending you somewhere you have already been.
+
+  - type: input
+    id: setup
+    attributes:
+      label: Your setup, if relevant
+      placeholder: "Windows 11, RTX 4070 12 GB, 32 GB RAM, v1.0.0 installer"
