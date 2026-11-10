@@ -1,0 +1,73 @@
+name: Deploy site
+
+# The project site lives in site/ and deploys through GitHub Actions rather
+# than the classic "/docs folder" Pages source, because docs/ is gitignored in
+# this repository — using it would mean reversing that decision.
+#
+# Two files are copied in at build time instead of being duplicated in git, so
+# each has exactly one source of truth:
+#   llms.txt                   -> served at the site root, which is where the
+#                                 llmstxt.org convention expects it
+#   .github/social-preview.png -> served as og.png for link previews
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'site/**'
+      - 'llms.txt'
+      - '.github/social-preview.png'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Never cancel a deploy in flight: a half-published site is worse than a
+# slightly stale one.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Build and deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Assemble the site
+        run: |
+          set -euo pipefail
+          mkdir -p _site
+          cp -r site/. _site/
+          cp llms.txt _site/llms.txt
+          cp .github/social-preview.png _site/og.png
+
+          # Fail loudly rather than publishing a page with a broken card or a
+          # 404 on a link the footer advertises.
+          for f in index.html style.css llms.txt og.png robots.txt sitemap.xml; do
+            test -s "_site/$f" || { echo "::error::missing or empty: $f"; exit 1; }
+          done
+          echo "site assembled:"
+          ls -la _site
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4

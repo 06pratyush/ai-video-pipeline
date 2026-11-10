@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+
+# Nothing here is private and nothing is generated per-visitor, so every
+# crawler is welcome, AI retrieval crawlers included. llms.txt below is a
+# structured summary written for them.
+
+Sitemap: https://06pratyush.github.io/ai-video-pipeline/sitemap.xml

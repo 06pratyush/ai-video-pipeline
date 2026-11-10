@@ -11,7 +11,7 @@ through ComfyUI, narrated by Kokoro TTS, subtitled by faster-whisper, scored by 
 assembled by FFmpeg. Nothing leaves the machine; there is no telemetry and no account.
 
 Repository: https://github.com/06pratyush/ai-video-pipeline
-Project page: https://thehallucinatedlab.space/solutions.html
+Project site: https://06pratyush.github.io/ai-video-pipeline/
 
 ## Key facts
 
@@ -72,6 +72,9 @@ clip, and batch generation that queues up to 10 projects to render sequentially.
 
 ## Documentation
 
+- [Project site](https://06pratyush.github.io/ai-video-pipeline/): a single page walking through
+  all eight pipeline stages with the tool and typical cost of each, the three-tier architecture,
+  the built-in Skills, hardware requirements, install routes and an FAQ.
 - [README](https://github.com/06pratyush/ai-video-pipeline/blob/main/README.md): what the project
   is, install instructions, system requirements, quick start, the eight pipeline stages, the Skills
   and quality settings tables, architecture diagram, build-from-source steps, troubleshooting and an FAQ.
