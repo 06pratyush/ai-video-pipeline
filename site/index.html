@@ -91,7 +91,10 @@
 <section class="hero" id="top">
   <div class="wrap">
     <p class="eyebrow"><span class="dot"></span> Open source · MIT · No API keys</p>
-    <h1>A text script becomes a finished video<br><span class="grad">on your own machine.</span></h1>
+    <!-- The space before <br> is deliberate and collapses visually. Without it,
+         extractors that read textContent (rather than innerText, which honours
+         the break) concatenate the two lines into "videoon". -->
+    <h1>A text script becomes a finished video <br><span class="grad">on your own machine.</span></h1>
     <p class="lede">
       AI Video Studio is a free, open-source <strong>local AI video generator</strong> for Windows,
       Linux and macOS. Paste a script, pick a style, and eight stages later you have a narrated,
