@@ -22,6 +22,7 @@ Your machine is the only computer in the loop.*
 
 <br>
 
+[**Website**](https://06pratyush.github.io/ai-video-pipeline/) &nbsp;·&nbsp;
 [**Download**](https://github.com/06pratyush/ai-video-pipeline/releases/latest) &nbsp;·&nbsp;
 [**Quick Start**](#quick-start) &nbsp;·&nbsp;
 [**Skills**](#skills) &nbsp;·&nbsp;

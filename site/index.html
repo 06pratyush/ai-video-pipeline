@@ -1,0 +1,444 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<title>AI Video Studio — Local AI Video Generator | How It Works</title>
+<meta name="description" content="Free, open-source local AI video generator. See how its 8-stage pipeline turns a script into a narrated, subtitled MP4 on your own GPU. No cloud, no API keys.">
+<link rel="canonical" href="https://06pratyush.github.io/ai-video-pipeline/">
+
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="AI Video Studio">
+<meta property="og:title" content="AI Video Studio — Local AI Video Generator">
+<meta property="og:description" content="A text script becomes a narrated, subtitled, colour-graded MP4 — entirely on your own GPU. See how the eight-stage pipeline works.">
+<meta property="og:url" content="https://06pratyush.github.io/ai-video-pipeline/">
+<meta property="og:image" content="https://06pratyush.github.io/ai-video-pipeline/og.png">
+<meta property="og:image:width" content="1280">
+<meta property="og:image:height" content="640">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="AI Video Studio — Local AI Video Generator">
+<meta name="twitter:description" content="A text script becomes a narrated, subtitled, colour-graded MP4 — entirely on your own GPU.">
+<meta name="twitter:image" content="https://06pratyush.github.io/ai-video-pipeline/og.png">
+
+<meta name="theme-color" content="#0a0a0b">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%230a0a0b'/><path d='M38 28 L74 50 L38 72 Z' fill='%236366f1'/></svg>">
+<link rel="stylesheet" href="style.css">
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "SoftwareApplication",
+      "name": "AI Video Studio",
+      "applicationCategory": "MultimediaApplication",
+      "applicationSubCategory": "Video Generation",
+      "operatingSystem": "Windows 10, Windows 11, Ubuntu 22.04, macOS 12",
+      "description": "A free, open-source, local AI video generator. Turns a text script into a narrated, subtitled, colour-graded MP4 entirely on the user's own GPU, with no cloud rendering, no API keys and no subscription.",
+      "url": "https://06pratyush.github.io/ai-video-pipeline/",
+      "downloadUrl": "https://github.com/06pratyush/ai-video-pipeline/releases/latest",
+      "softwareVersion": "1.0.0",
+      "license": "https://opensource.org/licenses/MIT",
+      "isAccessibleForFree": true,
+      "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+      "author": { "@type": "Person", "name": "06pratyush", "url": "https://github.com/06pratyush" },
+      "softwareRequirements": "NVIDIA GPU with 8 GB VRAM (16 GB recommended), 16 GB RAM, 30 GB free disk, Python 3.10+, Node.js 18+"
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        { "@type": "Question", "name": "Is AI Video Studio free?",
+          "acceptedAnswer": { "@type": "Answer", "text": "Yes. It is MIT licensed and free permanently. There is no account, no metering, no paid tier and no telemetry." } },
+        { "@type": "Question", "name": "Does it work offline?",
+          "acceptedAnswer": { "@type": "Answer", "text": "Yes, after setup. The first launch downloads roughly 20 GB of models. After that every render runs entirely on your machine and you can stay disconnected permanently." } },
+        { "@type": "Question", "name": "Do I need an NVIDIA GPU?",
+          "acceptedAnswer": { "@type": "Answer", "text": "For usable speed, yes — 8 GB VRAM minimum, 16 GB or more recommended. CPU-only mode runs but is roughly 10 times slower. AMD GPUs are not supported because Wan2.1 has no ROCm path." } },
+        { "@type": "Question", "name": "How long does one video take to generate?",
+          "acceptedAnswer": { "@type": "Answer", "text": "Five to fifteen minutes for a typical 30 to 60 second video on a 16 GB GPU, after a one-time setup of about 17 minutes." } },
+        { "@type": "Question", "name": "How is this different from Runway, Pika or Sora?",
+          "acceptedAnswer": { "@type": "Answer", "text": "Those are hosted services billed per generation under their content policy. AI Video Studio runs the same class of pipeline on hardware you own, so you get unlimited renders, no upload and no recurring cost, in exchange for needing a capable GPU." } }
+      ]
+    }
+  ]
+}
+</script>
+</head>
+
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="nav">
+  <div class="wrap nav-inner">
+    <a class="brand" href="#top">
+      <span class="brand-mark" aria-hidden="true"></span>
+      AI Video Studio
+    </a>
+    <nav aria-label="Primary">
+      <a href="#how">How it works</a>
+      <a href="#architecture">Architecture</a>
+      <a href="#skills">Skills</a>
+      <a href="#requirements">Requirements</a>
+      <a href="#faq">FAQ</a>
+      <a class="ghost" href="https://github.com/06pratyush/ai-video-pipeline">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+
+<!-- ───────────────────────────────── hero -->
+<section class="hero" id="top">
+  <div class="wrap">
+    <p class="eyebrow"><span class="dot"></span> Open source · MIT · No API keys</p>
+    <h1>A text script becomes a finished video<br><span class="grad">on your own machine.</span></h1>
+    <p class="lede">
+      AI Video Studio is a free, open-source <strong>local AI video generator</strong> for Windows,
+      Linux and macOS. Paste a script, pick a style, and eight stages later you have a narrated,
+      scored, subtitled, colour-graded MP4 — rendered entirely on your own GPU. No cloud, no
+      subscription, and nothing ever leaves your machine.
+    </p>
+    <div class="cta">
+      <a class="btn primary" href="https://github.com/06pratyush/ai-video-pipeline/releases/latest">Download</a>
+      <a class="btn" href="#how">See how it works</a>
+      <a class="btn quiet" href="https://github.com/06pratyush/ai-video-pipeline">View source</a>
+    </div>
+    <p class="note">
+      Requires an NVIDIA GPU with 8&nbsp;GB VRAM or more. CPU-only mode works but is roughly
+      10&times; slower. <a href="#requirements">Full requirements →</a>
+    </p>
+  </div>
+</section>
+
+<!-- ───────────────────────────────── at a glance -->
+<section class="band">
+  <div class="wrap stats">
+    <div><strong>8</strong><span>pipeline stages</span></div>
+    <div><strong>5–15 min</strong><span>per finished video</span></div>
+    <div><strong>7</strong><span>built-in style presets</span></div>
+    <div><strong>$0</strong><span>forever, MIT licensed</span></div>
+  </div>
+</section>
+
+<!-- ───────────────────────────────── how it works -->
+<section class="sec" id="how">
+  <div class="wrap">
+    <p class="kicker">How it works</p>
+    <h2>Eight stages, all running locally</h2>
+    <p class="sub">
+      When you press <em>Generate</em>, the backend queues your project and a worker thread walks it
+      through the stages below. Each stage hands its output to the next. Optional stages fail soft —
+      if MusicGen is missing, you get a video without music rather than an error.
+    </p>
+
+    <ol class="pipeline">
+      <li>
+        <span class="n">1</span>
+        <div class="body">
+          <h3>Narration refinement <span class="tag">Always</span></h3>
+          <p>Your raw script is rewritten into clean spoken narration — contractions, pacing, and the awkward phrasing that reads fine but sounds wrong.</p>
+          <p class="meta"><code>Gemma 3 / 4B</code> via Ollama · ~10s</p>
+        </div>
+      </li>
+      <li>
+        <span class="n">2</span>
+        <div class="body">
+          <h3>Scene prompt generation <span class="tag">Always</span></h3>
+          <p>The narration is split into scenes, and each scene gets a visual prompt written for a diffusion model — subject, setting, lighting, camera.</p>
+          <p class="meta"><code>Gemma 3 / 4B</code> · ~10s</p>
+        </div>
+      </li>
+      <li>
+        <span class="n">3</span>
+        <div class="body">
+          <h3>Voice synthesis <span class="tag">Always</span></h3>
+          <p>The narration is spoken by one of eight voices. Your own voice can be cloned from a reference clip through XTTS&nbsp;v2.</p>
+          <p class="meta"><code>Kokoro TTS</code> · ~5s per 100 words</p>
+        </div>
+      </li>
+      <li class="heavy">
+        <span class="n">4</span>
+        <div class="body">
+          <h3>Video clip generation <span class="tag">Always</span> <span class="tag warn">Slowest stage</span></h3>
+          <p>Each scene prompt is rendered to a clip on your GPU. The model size is chosen by how much VRAM is actually free — the 14B model when there is room, the 1.3B model when there is not.</p>
+          <p class="meta"><code>Wan2.1 1.3B / 14B</code> via ComfyUI · ~3 min per scene</p>
+        </div>
+      </li>
+      <li>
+        <span class="n">5</span>
+        <div class="body">
+          <h3>Background music <span class="tag opt">Optional</span></h3>
+          <p>A score is composed to match the mood your Skill specifies, then auto-ducked beneath the narration.</p>
+          <p class="meta"><code>MusicGen Small</code> · ~30s per scene</p>
+        </div>
+      </li>
+      <li>
+        <span class="n">6</span>
+        <div class="body">
+          <h3>Subtitles <span class="tag opt">Optional</span></h3>
+          <p>The rendered audio is transcribed back to text with timings, then burned into the picture — which is why Social Short turns this on by default.</p>
+          <p class="meta"><code>faster-whisper Base</code> · ~10s per minute of audio</p>
+        </div>
+      </li>
+      <li>
+        <span class="n">7</span>
+        <div class="body">
+          <h3>Interpolation &amp; upscaling <span class="tag opt">Optional</span></h3>
+          <p>Frames are interpolated to 30&nbsp;fps and the picture is upscaled to 1080p. RIFE and Real-ESRGAN drop in as replacements when installed.</p>
+          <p class="meta"><code>FFmpeg minterpolate</code> + <code>super2xbr</code> · +30% / +20% render time</p>
+        </div>
+      </li>
+      <li>
+        <span class="n">8</span>
+        <div class="body">
+          <h3>Colour grade &amp; mux <span class="tag">Always</span></h3>
+          <p>A colour grade and optional film grain are applied, clips are concatenated, audio is mixed, and the result is written out as <code>final.mp4</code>.</p>
+          <p class="meta"><code>FFmpeg curves / eq / concat</code> · ~30s</p>
+        </div>
+      </li>
+    </ol>
+
+    <div class="callout">
+      <h3>What makes it survivable</h3>
+      <ul>
+        <li><strong>VRAM-aware routing.</strong> The model is picked from free VRAM at the moment the stage runs, so a full GPU downgrades instead of crashing.</li>
+        <li><strong>A persistent queue.</strong> Progress lives in SQLite, so closing the app mid-render does not lose the job.</li>
+        <li><strong>A scene cache.</strong> Keyed on <code>sha256(prompt + seed + model + resolution)</code> — re-rendering a project only redoes the scenes that changed.</li>
+        <li><strong>Soft failure.</strong> Optional stages degrade rather than aborting the render.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ───────────────────────────────── architecture -->
+<section class="sec alt" id="architecture">
+  <div class="wrap">
+    <p class="kicker">Architecture</p>
+    <h2>Three tiers, each replaceable</h2>
+    <p class="sub">The desktop app never talks to a model directly. It talks to a local daemon, and the daemon owns the model lifecycle.</p>
+
+    <div class="tiers">
+      <div class="tier">
+        <h3>Electron frontend</h3>
+        <p class="stack">React 18 · Vite · Zustand · Tailwind</p>
+        <p>Project library, script editor, render panel, live VRAM meter, template and model browsers, batch modal.</p>
+      </div>
+      <div class="arrow" aria-hidden="true">
+        <span>REST + WebSocket</span>
+        <span class="mono">127.0.0.1:7860</span>
+      </div>
+      <div class="tier">
+        <h3>Python daemon</h3>
+        <p class="stack">FastAPI · SQLAlchemy 2.0 · uvicorn</p>
+        <p>Generation queue, VRAM-aware model lifecycle, scene cache, 11 REST routes and a WebSocket progress stream.</p>
+      </div>
+      <div class="arrow" aria-hidden="true">
+        <span>subprocess</span>
+        <span class="mono">lazy start</span>
+      </div>
+      <div class="tier">
+        <h3>Local runtimes</h3>
+        <p class="stack">ComfyUI · Ollama · FFmpeg</p>
+        <p>Started on demand, and stopped only if this app was the one that started them.</p>
+      </div>
+    </div>
+
+    <p class="note center">
+      The daemon binds to <code>127.0.0.1</code> only and has no authentication, by design — the trust
+      boundary is your machine. See the
+      <a href="https://github.com/06pratyush/ai-video-pipeline/blob/main/SECURITY.md">security policy</a>
+      for the full threat model.
+    </p>
+  </div>
+</section>
+
+<!-- ───────────────────────────────── skills -->
+<section class="sec" id="skills">
+  <div class="wrap">
+    <p class="kicker">Skills</p>
+    <h2>One preset decides the whole look</h2>
+    <p class="sub">
+      A Skill bundles voice, speed, scene pacing, aspect ratio, music mood and the FFmpeg
+      post-processing chain into a single choice. Seven ship by default, and they are plain JSON —
+      copy one to make your own.
+    </p>
+
+    <div class="tablewrap">
+      <table>
+        <caption class="sr">Built-in Skills and their settings</caption>
+        <thead>
+          <tr><th scope="col">Skill</th><th scope="col">Voice</th><th scope="col">Pacing</th><th scope="col">Aspect</th><th scope="col">Best for</th></tr>
+        </thead>
+        <tbody>
+          <tr><th scope="row">Documentary</th><td>George · British male</td><td>Slow</td><td>16:9</td><td>Long-form narration, nature, history</td></tr>
+          <tr><th scope="row">Explainer</th><td>Sarah · American female</td><td>Medium</td><td>16:9</td><td>Concept videos, tutorials</td></tr>
+          <tr><th scope="row">Product Showcase</th><td>Michael · American male</td><td>Medium</td><td>1:1</td><td>Marketing, demos</td></tr>
+          <tr><th scope="row">Cinematic Story</th><td>George · British male</td><td>Slow</td><td>16:9</td><td>Storytelling, dramatic content</td></tr>
+          <tr><th scope="row">Social Short</th><td>Heart · American female</td><td>Fast</td><td>9:16</td><td>TikTok, Reels, Shorts</td></tr>
+          <tr><th scope="row">Tutorial</th><td>Nicole · American female</td><td>Medium</td><td>16:9</td><td>How-to content</td></tr>
+          <tr><th scope="row">News Brief</th><td>Adam · American male</td><td>Fast</td><td>16:9</td><td>News updates, recaps</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <details class="disc">
+      <summary>What a Skill file looks like</summary>
+<pre><code>{
+  "id": "my-skill",
+  "name": "My Skill",
+  "description": "One-line summary shown in the picker",
+  "voice": "af_sarah",
+  "voice_speed": 1.0,
+  "scene_pacing": "medium",
+  "prompt_template": "{narration_chunk}, your style hints here",
+  "aspect_ratio": "16:9",
+  "resolution": "1080p",
+  "subtitles": false,
+  "music_mood": "ambient_score",
+  "post_processing": ["color_grade_cinematic"]
+}</code></pre>
+      <p>Drop it in <code>app/skills/</code> and it appears in the picker. No restart, no code.</p>
+    </details>
+  </div>
+</section>
+
+<!-- ───────────────────────────────── requirements -->
+<section class="sec alt" id="requirements">
+  <div class="wrap">
+    <p class="kicker">Requirements</p>
+    <h2>What you need to run it</h2>
+
+    <div class="tablewrap narrow">
+      <table>
+        <thead><tr><th scope="col"></th><th scope="col">Minimum</th><th scope="col">Recommended</th></tr></thead>
+        <tbody>
+          <tr><th scope="row">GPU</th><td>NVIDIA · 8 GB VRAM</td><td>NVIDIA · 16 GB+ VRAM</td></tr>
+          <tr><th scope="row">RAM</th><td>16 GB</td><td>32 GB</td></tr>
+          <tr><th scope="row">Disk</th><td>30 GB free</td><td>100 GB free</td></tr>
+          <tr><th scope="row">OS</th><td>Win 10 · Ubuntu 22.04 · macOS 12</td><td>Win 11 · Ubuntu 24.04 · macOS 14</td></tr>
+          <tr><th scope="row">Python</th><td>3.10</td><td>3.11</td></tr>
+          <tr><th scope="row">Node.js</th><td>18 LTS</td><td>20 LTS</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="cols">
+      <div>
+        <h3>First launch takes about 17 minutes</h3>
+        <p>That is a one-time download of roughly 20 GB — PyTorch and CUDA, ComfyUI and its dependencies, the Wan2.1 weights, and the Ollama model. After that you can disconnect permanently.</p>
+      </div>
+      <div>
+        <h3>AMD is not supported yet</h3>
+        <p>Wan2.1 has no ROCm path, so there is no working AMD route today. CPU-only mode runs on any machine but is roughly 10&times; slower — hours rather than minutes per video.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ───────────────────────────────── install -->
+<section class="sec" id="install">
+  <div class="wrap">
+    <p class="kicker">Install</p>
+    <h2>Two ways in</h2>
+    <div class="cols">
+      <div class="card">
+        <h3>Download an installer</h3>
+        <p>Windows NSIS or portable <code>.exe</code>, Linux AppImage or <code>.deb</code>, macOS DMG for Apple Silicon or Intel.</p>
+        <p><a class="btn primary small" href="https://github.com/06pratyush/ai-video-pipeline/releases/latest">Latest release</a></p>
+      </div>
+      <div class="card">
+        <h3>Run from source</h3>
+<pre><code>git clone https://github.com/06pratyush/ai-video-pipeline.git
+cd ai-video-pipeline
+
+# Windows
+start.bat
+
+# Linux / macOS
+./start.sh</code></pre>
+        <p>The launcher checks for Python 3.10+ and Node.js 18+, then runs the same bootstrap as the installer.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ───────────────────────────────── faq -->
+<section class="sec alt" id="faq">
+  <div class="wrap narrow-wrap">
+    <p class="kicker">FAQ</p>
+    <h2>Common questions</h2>
+
+    <details class="disc"><summary>Is AI Video Studio free?</summary>
+      <p>Yes. It is MIT licensed and free permanently. There is no account, no metering, no paid tier and no telemetry. The only costs are your electricity and disk space.</p></details>
+
+    <details class="disc"><summary>Does it work offline?</summary>
+      <p>Yes, after setup. The first launch downloads roughly 20 GB of models and needs a connection. After that every render runs entirely on your machine and you can stay disconnected permanently. The only outbound request the app makes is an optional update check against GitHub Releases.</p></details>
+
+    <details class="disc"><summary>Do I need an NVIDIA GPU?</summary>
+      <p>For usable speed, yes — 8 GB VRAM minimum, 16 GB or more recommended. CPU-only mode runs but is roughly 10&times; slower, meaning hours rather than minutes per video. AMD GPUs are not supported because Wan2.1 has no ROCm path.</p></details>
+
+    <details class="disc"><summary>How long does one video take?</summary>
+      <p>Five to fifteen minutes for a typical 30–60 second video on a 16 GB GPU. Each quality option adds to that: interpolation +30%, upscaling +20%, music about 30s per scene, subtitles about 10s per minute of audio.</p></details>
+
+    <details class="disc"><summary>How is this different from Runway, Pika or Sora?</summary>
+      <p>Those are hosted services: you submit a prompt, their GPUs render it, and you pay per generation under their content policy. AI Video Studio runs the same class of pipeline on hardware you own — unlimited renders, no upload, no content review, no recurring cost — in exchange for needing a capable GPU and the patience for a local render.</p></details>
+
+    <details class="disc"><summary>Can I use the output commercially?</summary>
+      <p>The application is MIT licensed, so the code is yours to use. Output rights depend on the models you run — Wan2.1, Gemma, Kokoro, MusicGen and Whisper each carry their own licence. Check each model's terms against your intended use; this project cannot grant rights it does not hold.</p></details>
+
+    <details class="disc"><summary>Where are my videos stored?</summary>
+      <p>Under <code>app/projects/&lt;project-id&gt;/</code> beside the application, indexed by a SQLite database. Nothing is uploaded. Note that deleting a project removes its database rows but leaves the media on disk.</p></details>
+
+    <details class="disc"><summary>Can I add my own voice or visual style?</summary>
+      <p>Yes. Voices clone from a reference clip through XTTS&nbsp;v2. Visual styles are Skills — plain JSON files you can copy and edit. See <a href="#skills">Skills</a>.</p></details>
+  </div>
+</section>
+
+<!-- ───────────────────────────────── contribute -->
+<section class="sec" id="contribute">
+  <div class="wrap narrow-wrap center">
+    <p class="kicker">Contribute</p>
+    <h2>The easiest contribution needs no Python</h2>
+    <p class="sub">
+      A Skill is a JSON file. A colour grade is an FFmpeg filter chain. Both are genuinely useful
+      and neither requires understanding the pipeline.
+    </p>
+    <div class="cta center-cta">
+      <a class="btn primary" href="https://github.com/06pratyush/ai-video-pipeline/blob/main/CONTRIBUTING.md">Contributing guide</a>
+      <a class="btn" href="https://github.com/06pratyush/ai-video-pipeline/blob/main/REVIEW_AND_MERGE.md">Review &amp; merge policy</a>
+      <a class="btn quiet" href="https://github.com/06pratyush/ai-video-pipeline/labels/good%20first%20issue">Good first issues</a>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer class="foot">
+  <div class="wrap foot-inner">
+    <div>
+      <p class="brand"><span class="brand-mark" aria-hidden="true"></span> AI Video Studio</p>
+      <p class="muted">Local AI video generation. MIT licensed. No telemetry, ever.</p>
+    </div>
+    <nav aria-label="Footer">
+      <a href="https://github.com/06pratyush/ai-video-pipeline">Repository</a>
+      <a href="https://github.com/06pratyush/ai-video-pipeline/releases/latest">Releases</a>
+      <a href="https://github.com/06pratyush/ai-video-pipeline/discussions">Discussions</a>
+      <a href="https://github.com/06pratyush/ai-video-pipeline/issues">Issues</a>
+      <a href="https://github.com/06pratyush/ai-video-pipeline/blob/main/SECURITY.md">Security</a>
+      <a href="llms.txt">llms.txt</a>
+    </nav>
+  </div>
+  <p class="wrap copyright">
+    Built on <a href="https://github.com/Wan-AI/Wan2.1">Wan2.1</a>,
+    <a href="https://ai.google.dev/gemma">Gemma</a>,
+    <a href="https://github.com/hexgrad/kokoro">Kokoro&nbsp;TTS</a>,
+    <a href="https://github.com/SYSTRAN/faster-whisper">faster-whisper</a>,
+    <a href="https://github.com/facebookresearch/audiocraft">MusicGen</a>,
+    <a href="https://github.com/comfyanonymous/ComfyUI">ComfyUI</a>,
+    <a href="https://ollama.com">Ollama</a> and
+    <a href="https://ffmpeg.org">FFmpeg</a>.
+  </p>
+</footer>
+
+</body>
+</html>
