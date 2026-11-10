@@ -217,6 +217,14 @@ h3 { font-size: 1.08rem; margin: 0 0 8px; font-weight: 650; letter-spacing: -.01
 .callout li { margin-bottom: 9px; font-size: 15.5px; }
 .callout strong { color: var(--txt); }
 
+/* A grid item defaults to min-width:auto, meaning its automatic minimum size
+   is its MIN-CONTENT width. The install card holds a <pre> with an unbreakable
+   50-character clone URL, which set a 500px floor on the column and pushed the
+   whole page wider than a phone viewport. The <pre> already had overflow-x:auto
+   but could never use it, because its parent refused to shrink. min-width:0
+   lets the column narrow so the <pre> scrolls inside it instead. */
+.cols > *, .tiers > * { min-width: 0; }
+
 /* ───────────────────────────── tiers */
 .tiers { display: grid; grid-template-columns: 1fr auto 1fr auto 1fr; gap: 16px; align-items: stretch; }
 .tier {
