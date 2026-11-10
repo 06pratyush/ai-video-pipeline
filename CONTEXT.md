@@ -192,3 +192,15 @@
 - **Context Modifications:** Added `site/index.html`, `site/style.css`, `site/robots.txt`, `site/sitemap.xml` and `.github/workflows/pages.yml`. Modified `llms.txt` and `README.md`. `.gitignore` is unchanged — `docs/`, `CHANGELOG.md` and the roadmap remain unpublished, which is why the site states its content directly rather than linking into `docs/`. The site has no build step, no dependencies and no package manifest: it is two files plus two copied at deploy time, so it cannot rot through a dependency.
 
 ---
+
+- **Timestamp:** 2026-11-10T12:00:00Z
+- **Trigger Event:** Pull Request
+- **Author/Agent:** Claude Opus 5 (Master Orchestrator) for 06pratyush
+- **Target Subsystem:** `site/index.html`
+- **Intent:** Repair a text-extraction defect in the site's `h1`, found while verifying the live deployment from the preceding entry.
+- **Bugs Discovered:** The `h1` split its two lines with a bare `<br>` and no surrounding whitespace, so while `innerText` correctly returned `"...finished video\non your own machine."` — which is what a browser renders and what Google, which renders pages, sees — `textContent` returned `"...finished videoon your own machine."`. Any extractor that reads `textContent`, or that strips tags without substituting whitespace for `<br>`, therefore read the page's single most important heading as containing the non-word "videoon". That class of extractor includes a good deal of simple tooling and some AI retrieval crawlers, which makes it worth fixing on a page whose stated purpose includes LLM retrieval.
+- **Fixes Applied:** A single space before the `<br>`, with a comment recording why it is deliberate so a later tidy-up does not remove it. CSS `white-space: normal` collapses trailing whitespace before a line break, so there is no visual change whatsoever.
+- **Verification:** No application code, dependency or database schema was touched; no test run was required and none was performed. The fix was proved by extracting the `h1`'s text nodes from the source and asserting both directions — the literal string `videoon` is absent, and `video on your own machine` is present. Note that the first attempt at that check was itself wrong and was corrected before being trusted: the parser tracked element depth with a counter incremented on every start tag, but `<br>` is a void element that never emits an end tag, so the depth never returned to zero and the checker silently captured the entire remainder of the document rather than the heading. The visual result is unchanged by inspection of the rule rather than by screenshot, since collapsing whitespace before a line break is specified behaviour rather than something to confirm empirically.
+- **Context Modifications:** None beyond the one-line edit. No new files, dependencies or schema changes.
+
+---
