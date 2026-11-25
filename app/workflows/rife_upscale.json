@@ -1,0 +1,9 @@
+{
+  "load": {"class_type": "LoadVideo", "inputs": {"file": ""}, "_meta": {"title": "Clip from Wan"}},
+  "parts": {"class_type": "GetVideoComponents", "inputs": {"video": ["load", 0]}, "_meta": {"title": "Video to frames"}},
+  "rife": {"class_type": "RIFE VFI", "inputs": {"ckpt_name": "rife49.pth", "frames": ["parts", 0], "clear_cache_after_n_frames": 10, "multiplier": 2, "fast_mode": true, "ensemble": true, "scale_factor": 1.0, "dtype": "float16", "torch_compile": false, "batch_size": 1}, "_meta": {"title": "RIFE 4.9 frame interpolation (GPU)"}},
+  "upmodel": {"class_type": "UpscaleModelLoader", "inputs": {"model_name": "RealESRGAN_x2plus.pth"}, "_meta": {"title": "Real-ESRGAN x2"}},
+  "upscale": {"class_type": "ImageUpscaleWithModel", "inputs": {"upscale_model": ["upmodel", 0], "image": ["rife", 0]}, "_meta": {"title": "Upscale x2 (GPU)"}},
+  "video": {"class_type": "CreateVideo", "inputs": {"images": ["upscale", 0], "fps": 48.0}, "_meta": {"title": "Frames to video"}},
+  "save": {"class_type": "SaveVideo", "inputs": {"video": ["video", 0], "filename_prefix": "aivs/smooth", "format": "mp4", "codec": "h264"}, "_meta": {"title": "Save MP4"}}
+}
