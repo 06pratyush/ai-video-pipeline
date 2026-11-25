@@ -20,7 +20,9 @@ def find_comfyui() -> str | None:
     ]
     for c in candidates:
         if (c / "main.py").exists():
-            return str(c)
+            # Absolute: start() runs main.py with cwd set to this folder, so a
+            # relative path would resolve to app/runtime/comfyui/app/runtime/comfyui.
+            return str(c.resolve())
     return None
 
 
@@ -45,14 +47,23 @@ def start(comfyui_path: str | None = None) -> bool:
     if not main_py.exists():
         return False
 
-    # Use the same Python interpreter that's running us
+    # ComfyUI gets its own venv (CUDA PyTorch + ComfyUI-GGUF) so the backend's
+    # environment can stay small; fall back to our interpreter if it is missing.
+    python = sys.executable
+    for venv_py in (Path(path) / "venv" / "Scripts" / "python.exe",
+                    Path(path) / "venv" / "bin" / "python"):
+        if venv_py.exists():
+            python = str(venv_py)
+            break
+
+    log = open(Path(path) / "comfyui.log", "ab")
     _process = subprocess.Popen(
-        [sys.executable, str(main_py), "--listen", "127.0.0.1", "--port", "8188"],
+        [python, str(main_py), "--listen", "127.0.0.1", "--port", "8188"],
         cwd=path,
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
+        stdout=log,
+        stderr=subprocess.STDOUT,
     )
-    for _ in range(60):
+    for _ in range(90):
         time.sleep(2)
         if is_running():
             return True

@@ -11,6 +11,7 @@ OLLAMA_URL = "http://localhost:11434"
 MODEL_VRAM_MB: dict[str, int] = {
     "wan2.1-14b":          16384,
     "wan2.1-1.3b":          8192,
+    "wan2.2-ti2v-5b":       6144,   # GGUF Q4_K_M + offloaded encoder
     "ltx-video":            8192,
     "cogvideox-5b":        12288,
     "animatediff":          6144,

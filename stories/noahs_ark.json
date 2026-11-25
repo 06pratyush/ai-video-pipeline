@@ -1,0 +1,62 @@
+{
+  "title": "Noah's Ark",
+  "aspect_ratio": "9:16",
+  "voice": "bm_george",
+  "voice_speed": 0.95,
+  "style": "Pixar-style 3D animated film, soft global illumination, warm cinematic lighting, expressive stylized characters, rich detailed textures, shallow depth of field, smooth gentle camera motion, high quality animation",
+  "noah": "Noah, a kind old man with a long white beard, warm brown eyes and a simple brown hooded robe",
+  "scenes": [
+    {
+      "narration": "Long ago, the world had filled with violence, and people had forgotten God.",
+      "prompt": "an ancient walled city at dusk, crowds of people arguing and shoving in a torch-lit market street, {noah} watching sadly from a doorway, slow push-in camera"
+    },
+    {
+      "narration": "But one man still walked with God. His name was Noah.",
+      "prompt": "{noah} kneeling in prayer on a quiet green hill at golden sunset, wind moving the grass and his robe, slow orbiting camera"
+    },
+    {
+      "narration": "One night, God spoke to him. A great flood is coming. Build an ark.",
+      "prompt": "{noah} standing alone under a starry night sky, looking up in awe as golden light breaks through swirling clouds and shines on his face, camera slowly tilting up"
+    },
+    {
+      "narration": "So Noah obeyed. Day after day, he and his sons cut and hammered wood.",
+      "prompt": "{noah} and three young bearded men hammering huge wooden beams of a giant ark frame in a sunny valley, sawdust in the air, wide shot, camera slowly tracking sideways"
+    },
+    {
+      "narration": "His neighbours laughed at the giant boat on dry land. Noah kept building.",
+      "prompt": "villagers laughing and pointing at an enormous half-built wooden ark on dry dusty land, {noah} calmly carrying a plank past them, low angle wide shot"
+    },
+    {
+      "narration": "Then the animals came, two by two, from every corner of the earth.",
+      "prompt": "pairs of elephants, giraffes, lions, zebras and birds walking in a long line up a wooden ramp into a giant ark, golden afternoon light, dust in the air, sweeping crane shot"
+    },
+    {
+      "narration": "Noah, his family and every creature went inside, and the great door closed.",
+      "prompt": "the huge wooden door of the ark slowly closing from inside, {noah} and his family looking back through the gap at darkening clouds, warm lantern light inside"
+    },
+    {
+      "narration": "The sky turned black, and the rain began. For forty days and forty nights.",
+      "prompt": "dark storm clouds rolling over the giant wooden ark, heavy rain pouring down, lightning flashing across the sky, water rising around the hull, dramatic wide shot"
+    },
+    {
+      "narration": "The waters rose over the hills and mountains, but the ark floated safely on.",
+      "prompt": "a giant wooden ark floating on an endless stormy ocean, huge waves, mountain peaks disappearing under water, rain and mist, aerial drone shot slowly circling"
+    },
+    {
+      "narration": "Inside, Noah cared for every animal, waiting, and trusting God.",
+      "prompt": "cozy interior of the ark lit by warm hanging lanterns, {noah} gently feeding an elephant with an apple, giraffes, rabbits and parrots on wooden decks around him, hay on the floor"
+    },
+    {
+      "narration": "At last the rain stopped. Noah sent out a dove, and it came back with an olive leaf.",
+      "prompt": "a white dove flying toward the camera over calm shining water at sunrise, holding a green olive leaf in its beak, {noah} smiling at the ark window behind, soft morning light"
+    },
+    {
+      "narration": "The ark came to rest, and Noah's family stepped onto dry ground once more.",
+      "prompt": "{noah} and his family stepping off the ark onto green grass on a mountainside, animals running out behind them into the sunlight, joyful, wide shot, gentle camera pull back"
+    },
+    {
+      "narration": "And God set a rainbow in the sky, a promise that the flood would never return.",
+      "prompt": "a brilliant rainbow arching across a clear blue sky above the wooden ark resting on a green mountain, {noah} and his family looking up in wonder, camera slowly rising"
+    }
+  ]
+}

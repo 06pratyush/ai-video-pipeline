@@ -1,0 +1,71 @@
+{
+  "unet": {
+    "class_type": "UnetLoaderGGUF",
+    "inputs": { "unet_name": "Wan2.2-TI2V-5B-Q4_K_M.gguf" },
+    "_meta": { "title": "Wan2.2 TI2V 5B (GGUF Q4_K_M)" }
+  },
+  "shift": {
+    "class_type": "ModelSamplingSD3",
+    "inputs": { "model": ["unet", 0], "shift": 8.0 },
+    "_meta": { "title": "Flow shift" }
+  },
+  "clip": {
+    "class_type": "CLIPLoaderGGUF",
+    "inputs": { "clip_name": "umt5-xxl-encoder-Q4_K_M.gguf", "type": "wan" },
+    "_meta": { "title": "UMT5-XXL text encoder (GGUF Q4_K_M)" }
+  },
+  "vae": {
+    "class_type": "VAELoader",
+    "inputs": { "vae_name": "wan2.2_vae.safetensors" },
+    "_meta": { "title": "Wan2.2 VAE" }
+  },
+  "positive": {
+    "class_type": "CLIPTextEncode",
+    "inputs": { "clip": ["clip", 0], "text": "" },
+    "_meta": { "title": "Positive prompt" }
+  },
+  "negative": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "clip": ["clip", 0],
+      "text": "blurry, low quality, distorted face, deformed hands, extra limbs, flicker, jpeg artifacts, watermark, text, subtitles, static frame, overexposed, ugly"
+    },
+    "_meta": { "title": "Negative prompt" }
+  },
+  "latent": {
+    "class_type": "Wan22ImageToVideoLatent",
+    "inputs": { "vae": ["vae", 0], "width": 480, "height": 832, "length": 73, "batch_size": 1 },
+    "_meta": { "title": "Video latent (size and length)" }
+  },
+  "sampler": {
+    "class_type": "KSampler",
+    "inputs": {
+      "model": ["shift", 0],
+      "positive": ["positive", 0],
+      "negative": ["negative", 0],
+      "latent_image": ["latent", 0],
+      "seed": 0,
+      "steps": 20,
+      "cfg": 5.0,
+      "sampler_name": "uni_pc",
+      "scheduler": "simple",
+      "denoise": 1.0
+    },
+    "_meta": { "title": "Sampler" }
+  },
+  "decode": {
+    "class_type": "VAEDecode",
+    "inputs": { "samples": ["sampler", 0], "vae": ["vae", 0] },
+    "_meta": { "title": "Decode" }
+  },
+  "video": {
+    "class_type": "CreateVideo",
+    "inputs": { "images": ["decode", 0], "fps": 24.0 },
+    "_meta": { "title": "Frames to video" }
+  },
+  "save": {
+    "class_type": "SaveVideo",
+    "inputs": { "video": ["video", 0], "filename_prefix": "aivs/scene", "format": "mp4" },
+    "_meta": { "title": "Save MP4" }
+  }
+}
