@@ -1,0 +1,11 @@
+{
+  "unet": {"class_type": "UnetLoaderGGUF", "inputs": {"unet_name": "flux1-schnell-Q4_K_S.gguf"}, "_meta": {"title": "FLUX.1 schnell (GGUF Q4_K_S, Apache-2.0)"}},
+  "clip": {"class_type": "DualCLIPLoaderGGUF", "inputs": {"clip_name1": "t5-v1_1-xxl-encoder-Q4_K_M.gguf", "clip_name2": "clip_l.safetensors", "type": "flux"}, "_meta": {"title": "T5-XXL (GGUF) + CLIP-L"}},
+  "vae": {"class_type": "VAELoader", "inputs": {"vae_name": "ae.safetensors"}, "_meta": {"title": "FLUX VAE"}},
+  "positive": {"class_type": "CLIPTextEncode", "inputs": {"clip": ["clip", 0], "text": ""}, "_meta": {"title": "Prompt"}},
+  "negative": {"class_type": "ConditioningZeroOut", "inputs": {"conditioning": ["positive", 0]}, "_meta": {"title": "Empty negative (cfg 1)"}},
+  "latent": {"class_type": "EmptySD3LatentImage", "inputs": {"width": 768, "height": 1344, "batch_size": 1}, "_meta": {"title": "Image size"}},
+  "sampler": {"class_type": "KSampler", "inputs": {"model": ["unet", 0], "positive": ["positive", 0], "negative": ["negative", 0], "latent_image": ["latent", 0], "seed": 0, "steps": 4, "cfg": 1.0, "sampler_name": "euler", "scheduler": "simple", "denoise": 1.0}, "_meta": {"title": "Sampler (4 steps)"}},
+  "decode": {"class_type": "VAEDecode", "inputs": {"samples": ["sampler", 0], "vae": ["vae", 0]}, "_meta": {"title": "Decode"}},
+  "save": {"class_type": "SaveImage", "inputs": {"images": ["decode", 0], "filename_prefix": "aivs/key"}, "_meta": {"title": "Save PNG"}}
+}
