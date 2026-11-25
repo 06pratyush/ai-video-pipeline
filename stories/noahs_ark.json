@@ -15,10 +15,10 @@
       "seed": 23
     }
   },
-  "music": "cinematic orchestral film score, gentle strings, warm french horn, soft choir, hopeful, slow build, storybook, instrumental",
-  "music_seed": 7,
+  "music": "warm hopeful orchestral film score, gentle strings, soft piano, warm french horn, major key, uplifting, tender, storybook, children's animated film, slow tempo, instrumental",
+  "music_seed": 11,
   "smooth": true,
-  "upscale": true,
+  "upscale": false,
   "scenes": [
     {
       "narration": "Long ago, the world had filled with violence, and people had forgotten God.",
@@ -48,6 +48,8 @@
     {
       "narration": "Then the animals came, two by two, from every corner of the earth.",
       "prompt": "pairs of elephants, giraffes, lions and zebras walking in a long line up a wooden ramp into {ark}, birds flying overhead, golden afternoon light, dust in the air, slow sweeping crane shot",
+      "keyframe": "a long line of animals walking in pairs up a wooden ramp into {ark}: two grey elephants, two tall giraffes, two lions, birds flying overhead, golden afternoon light, dust in the air",
+      "keyframe_seed": 3006,
       "cast": ["ark"]
     },
     {
@@ -63,6 +65,8 @@
     {
       "narration": "The waters rose over the hills and mountains, but the ark floated safely on.",
       "prompt": "{ark} floating on an endless stormy ocean, big rolling waves lifting it gently, mountain peaks disappearing under water, rain and mist, aerial camera slowly circling",
+      "keyframe": "{ark} floating low in the water on a vast grey stormy ocean, its hull half submerged in big rolling waves with white foam all around it, the tips of mountain peaks poking out of the flood water in the distance, rain and mist, wide aerial view",
+      "keyframe_seed": 3009,
       "cast": ["ark"]
     },
     {

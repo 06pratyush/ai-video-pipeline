@@ -279,6 +279,28 @@ def test_filters_parse_in_ffmpeg():
     assert r.returncode == 0, r.stderr
 
 
+def test_prompts_without_llm():
+    from app.backend.pipeline.gemma_client import GemmaClient, narration_prompts
+    text = "One. Two is here! Three? Four. Five."
+    p = narration_prompts(text, 2)
+    assert len(p) == 2 and p[0].startswith("One. Two is here,") and p[1].startswith("Three? Four. Five,"), p
+    assert len(narration_prompts("Only one sentence.", 3)) == 3
+    # an unreachable Ollama must not stop a render: prompts come from the narration
+    g = GemmaClient(model="none", ollama_url="http://127.0.0.1:9")
+    assert g.generate_video_prompts(text, 5)[4].startswith("Five")
+
+
+def test_mix_is_stereo():
+    if not shutil.which("ffmpeg"):
+        return
+    graph = E.mix_filter(3.0)
+    # mono voice + stereo music must come out stereo (amix follows its first input's layout)
+    r = subprocess.run(["ffmpeg", "-hide_banner", "-f", "lavfi", "-i", "sine=f=220:d=3",
+                        "-f", "lavfi", "-i", "sine=f=440:d=5", "-filter_complex", graph,
+                        "-map", "[aout]", "-f", "null", "-"], capture_output=True, text=True)
+    assert "stereo" in r.stderr.split("Output #0")[-1], r.stderr[-600:]
+
+
 # ----------------------------------------------------------------------------- safety
 
 

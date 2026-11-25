@@ -201,15 +201,16 @@ def stage_keyframes(story, out: Path, only=None, **_):
         scene_text = fill(sc.get("keyframe", sc["prompt"]), story)
         use = "kontext" if (mode == "kontext" and cast) else "schnell"
         client = clients.setdefault(use, ImageClient(use))
+        seed = int(sc.get("keyframe_seed", 2000 + i))  # change it to re-roll one bad keyframe
         t0 = time.time()
         if use == "kontext":
             prompt = (f"Place this exact character, keeping the face, hair, beard, body and "
                       f"clothing identical, into a new scene: {scene_text}. "
                       f"Vertical cinematic frame, {story['style']}")
-            client.generate(prompt, dest, w, h, seed=2000 + i,
+            client.generate(prompt, dest, w, h, seed=seed,
                             reference=out / "refs" / f"{cast[0]}.png")
         else:
-            client.generate(f"{scene_text}, {story['style']}", dest, w, h, seed=2000 + i)
+            client.generate(f"{scene_text}, {story['style']}", dest, w, h, seed=seed)
         log(f"  keyframe {i:02d} ({use}{', ' + cast[0] if use == 'kontext' else ''}): "
             f"{time.time() - t0:.0f}s")
 
@@ -255,13 +256,13 @@ def stage_smooth(story, out: Path, only=None, **_):
     from app.backend.pipeline.smooth_client import SmoothClient
     comfy()
     sm = SmoothClient()
-    upscale = story.get("upscale", True)
+    upscale = story.get("upscale", False)
     for i in range(1, len(story["scenes"]) + 1):
         src, dest = out / "clips" / f"{i:02d}.mp4", out / "smooth" / f"{i:02d}.mp4"
         if not src.exists() or not wanted(i, dest, only):
             continue
         t0 = time.time()
-        sm.smooth(src, dest, src_fps=24.0, upscale=upscale)
+        sm.smooth(src, dest, src_fps=24.0, upscale=upscale)  # ESRGAN x2 adds ~7 min per clip on an RTX 4060
         log(f"  smooth {i:02d}: 48 fps{' + ESRGAN x2' if upscale else ''} in {time.time() - t0:.0f}s")
 
 
