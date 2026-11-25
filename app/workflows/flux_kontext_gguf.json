@@ -1,0 +1,16 @@
+{
+  "unet": {"class_type": "UnetLoaderGGUF", "inputs": {"unet_name": "flux1-kontext-dev-Q4_K_M.gguf"}, "_meta": {"title": "FLUX.1 Kontext dev (GGUF Q4_K_M, NON-COMMERCIAL licence)"}},
+  "clip": {"class_type": "DualCLIPLoaderGGUF", "inputs": {"clip_name1": "t5-v1_1-xxl-encoder-Q4_K_M.gguf", "clip_name2": "clip_l.safetensors", "type": "flux"}, "_meta": {"title": "T5-XXL (GGUF) + CLIP-L"}},
+  "vae": {"class_type": "VAELoader", "inputs": {"vae_name": "ae.safetensors"}, "_meta": {"title": "FLUX VAE"}},
+  "ref": {"class_type": "LoadImage", "inputs": {"image": ""}, "_meta": {"title": "Character reference"}},
+  "ref_scale": {"class_type": "FluxKontextImageScale", "inputs": {"image": ["ref", 0]}, "_meta": {"title": "Reference to Kontext size"}},
+  "ref_latent": {"class_type": "VAEEncode", "inputs": {"pixels": ["ref_scale", 0], "vae": ["vae", 0]}, "_meta": {"title": "Encode reference"}},
+  "positive": {"class_type": "CLIPTextEncode", "inputs": {"clip": ["clip", 0], "text": ""}, "_meta": {"title": "Edit instruction"}},
+  "reference": {"class_type": "ReferenceLatent", "inputs": {"conditioning": ["positive", 0], "latent": ["ref_latent", 0]}, "_meta": {"title": "Attach reference"}},
+  "guidance": {"class_type": "FluxGuidance", "inputs": {"conditioning": ["reference", 0], "guidance": 2.5}, "_meta": {"title": "Guidance"}},
+  "negative": {"class_type": "ConditioningZeroOut", "inputs": {"conditioning": ["positive", 0]}, "_meta": {"title": "Empty negative (cfg 1)"}},
+  "latent": {"class_type": "EmptySD3LatentImage", "inputs": {"width": 768, "height": 1344, "batch_size": 1}, "_meta": {"title": "Image size"}},
+  "sampler": {"class_type": "KSampler", "inputs": {"model": ["unet", 0], "positive": ["guidance", 0], "negative": ["negative", 0], "latent_image": ["latent", 0], "seed": 0, "steps": 20, "cfg": 1.0, "sampler_name": "euler", "scheduler": "simple", "denoise": 1.0}, "_meta": {"title": "Sampler"}},
+  "decode": {"class_type": "VAEDecode", "inputs": {"samples": ["sampler", 0], "vae": ["vae", 0]}, "_meta": {"title": "Decode"}},
+  "save": {"class_type": "SaveImage", "inputs": {"images": ["decode", 0], "filename_prefix": "aivs/key"}, "_meta": {"title": "Save PNG"}}
+}

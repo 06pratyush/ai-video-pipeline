@@ -246,3 +246,15 @@
 - **Context Modifications:** None beyond the files listed.
 
 ---
+
+- **Timestamp:** 2026-11-25T13:08:22Z
+- **Trigger Event:** Pull Request (v2 series)
+- **Author/Agent:** Claude Opus 5.5 for 06pratyush
+- **Target Subsystem:** `app/backend/pipeline/{comfy_client,wan_client,image_client}.py`, `app/workflows/flux_*.json`
+- **Intent:** Keep characters looking the same across scenes. v1 generated every clip from text alone, so Noah's beard, face and clothes changed from shot to shot, and the ark became a steamship in one scene.
+- **Bugs Discovered:** Found while building the shared client: ComfyUI's LoadVideo/LoadImage nodes also list their *input* file under `images` in `/history`, so a client that takes the first media file it finds downloads the input back instead of the result. The shared client only returns items of type `output`.
+- **Fixes Applied:** New `ComfyClient` used by every GPU stage: submit with node-id overrides (`set_inputs` fails on unknown ids), wait on `/history` with ComfyUI's own error text and a timeout, download only saved outputs via a `.part` file, upload inputs under generated `aivs_<uuid>` names, and `/free` between stages so each model gets the whole 8 GB. Two FLUX workflows: schnell (Apache-2.0, 4 steps) for character sheets and text keyframes, Kontext dev (NON-COMMERCIAL) which edits a character reference into each scene. `image_client` picks the mode and a ~1 MP keyframe size with the video's aspect ratio. `wan_client` now builds workflows with a pure `build_workflow()` and, given `start_image`, uploads it and wires a LoadImage into `Wan22ImageToVideoLatent.start_image`, so Wan animates from the keyframe (image-to-video) with one workflow file for both modes.
+- **Verification:** Workflow node types checked against the running ComfyUI's `/object_info` (doctor.py: all present). Client behaviour covered by fake-server tests added later in this series. Real FLUX renders are verified in the end-to-end entry, once the FLUX files finish downloading.
+- **Context Modifications:** None beyond the files listed.
+
+---
