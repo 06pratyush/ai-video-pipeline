@@ -15,7 +15,7 @@
 | **API Gateway** | FastAPI + Uvicorn | 0.111+ / 0.29+ | Localhost-only (127.0.0.1:7860), Pydantic request models, WebSocket progress stream |
 | **Relational DB** | SQLite via SQLAlchemy | 2.0+ | Declarative ORM, `SessionLocal` per unit of work, additive migrations in `db._run_migrations` |
 | **LLM Engine** | Ollama (`gemma4:e4b`) | local | Subprocess-managed; only stopped if this app started it |
-| **Video Compute** | ComfyUI + Wan 2.1 | local | Lazy start, VRAM-routed model selection |
+| **Video Compute** | ComfyUI + Wan2.2 TI2V-5B (GGUF Q4_K_M) | local | Lazy start, own CUDA venv in `app/runtime/comfyui/venv`, API workflows in `app/workflows/` with named node ids |
 | **Speech / Audio** | Kokoro TTS, faster-whisper, MusicGen | local | Optional deps degrade gracefully, never fatally |
 | **Media Muxing** | FFmpeg | bundled/system | Temp files always cleaned in `finally` |
 
@@ -33,7 +33,7 @@
 - [GAP-01]: Deleting a project removes its DB rows but leaves generated media under `app/projects/<id>/` on disk. Intentional for now (avoids irreversible bulk deletion) but leaks storage.
 - [GAP-02]: `datetime.utcnow()` is used throughout the models and queue; deprecated in Python 3.12+ and will eventually need `datetime.now(timezone.utc)`.
 - [GAP-03]: No auth on the daemon. Acceptable only because it binds to 127.0.0.1; CORS is currently `allow_origins=["*"]` and should be narrowed to the Electron origin.
-- [GAP-04]: End-to-end render (ComfyUI/Wan/Kokoro) is unverified in this environment — models and ComfyUI are not installed here. Only pipeline control flow, persistence, and API surface are verified.
+- [GAP-04]: CLOSED in v2 commit 1 — a full render (Wan2.2 5B GGUF in ComfyUI, Kokoro, FFmpeg) is verified on an RTX 4060 Laptop (8 GB). Still unverified on Linux/macOS and on GPUs below 8 GB.
 - [GAP-05]: Cancellation takes effect at scene boundaries, not mid-clip; a single long clip render must finish before the cancel is observed.
 - [GAP-06]: `httpx` is required to run the test suite but is not declared in `requirements.txt` (test-only dependency).
 
@@ -216,5 +216,21 @@
 - **Fixes Applied:** `min-width: 0` on the children of `.cols` and `.tiers`, with a comment recording the reasoning so it is not removed as redundant later. This lets the column narrow past its min-content width, at which point the `<pre>`'s existing `overflow-x: auto` takes effect and the command scrolls inside its card instead of stretching the page.
 - **Verification:** No application code, dependency or database schema was touched; no test run was required and none was performed. The candidate rule was first injected into the live page and measured before being written to the file, confirming it was the actual cause rather than a plausible guess: `scrollWidth` fell from 524 to 271 against a 286px viewport, with zero elements escaping. The committed file was then served and measured at three widths, each one asserting `innerWidth` matched the requested value before the result was accepted — 286px (the pane's own width, narrower than any real phone), 375px and 1280px. All three report no page overflow and nothing escaping a scroll container, and at 1280px the three-tier layout still computes its five columns at full height, so the rule does not disturb the desktop composition. Not verified: rendering on physical devices, and the live deployment, which follows this merge.
 - **Context Modifications:** None beyond the CSS rule. No new files, dependencies or schema changes. Worth carrying forward for any future viewport testing in this repository: a viewport preset in the browser pane may be scaled to fit and therefore does not establish the width it names, so assert `innerWidth` before trusting a measurement.
+
+---
+
+- **Timestamp:** 2026-11-25T10:00:00Z
+- **Trigger Event:** Pull Request (v2, commit 1 of the series)
+- **Author/Agent:** Claude Opus 5.5 for 06pratyush
+- **Target Subsystem:** `app/backend/pipeline/wan_client.py`, `app/backend/services/{comfyui_manager,generation_queue,vram_manager}.py`, `app/workflows/`, `installer/catalog.json`, `scripts/render_story.py`, `stories/`, `.gitignore`
+- **Intent:** Start AI Video Studio v2 by making v1 actually render a video. v1 shipped a pipeline that could not produce a single clip.
+- **Bugs Discovered:**
+  1. `wan_workflow_api.json` was the stock SD1.5 *image* workflow, not a Wan video workflow.
+  2. `WanVideoClient` only read outputs under the `videos` key; ComfyUI's SaveVideo reports under `images` with `animated: true`, so every job polled forever. It also overwrote the negative prompt with the positive one.
+  3. `comfyui_manager.find_comfyui()` returned a relative path and `start()` then ran with `cwd` set to that same path, so ComfyUI looked for `app/runtime/comfyui/app/runtime/comfyui/main.py` and never started. Its output went to DEVNULL, which hid the failure.
+  4. The backend venv's torch was CPU-only and ComfyUI was not installed at all.
+- **Fixes Applied:** Default video model is now Wan2.2 TI2V-5B as a 4-bit GGUF (with the UMT5 encoder also 4-bit, and the Wan2.2 VAE), which fits an 8 GB laptop GPU because ComfyUI unloads the encoder before loading the video model. New API workflow `app/workflows/wan22_ti2v_5b_gguf.json` with named node ids. Client rewritten: sets nodes by id, enforces Wan's 4k+1 frame rule (`frames_for_seconds`), finds video under any output key, raises ComfyUI's own error text, has a timeout. Manager resolves an absolute path, prefers ComfyUI's own venv, logs to `comfyui.log`. Queue picks render size from aspect ratio. `scripts/render_story.py` renders a story file (voice, clips, edit) and `stories/noahs_ark.json` is the first sample. `app/workflows/` is now tracked (the files reference models by file name only); `outputs/*` is ignored except the tracked `outputs/scripts/`.
+- **Verification:** Rendered the 13-scene Noah's Ark short end to end on an RTX 4060 Laptop: 13 clips of 121 frames at 480x832 in about 6-7 min each, final 77 s 1080x1920 with narration and burned captions, checked with ffprobe and a contact sheet.
+- **Context Modifications:** Stack matrix row for video compute updated; GAP-04 closed for Windows + 8 GB.
 
 ---

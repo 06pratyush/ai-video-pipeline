@@ -275,20 +275,28 @@ def _run_pipeline(queue_item_id: str, project_id: str):
         skill_resolution = (skill_data.get("resolution", "1080p") if skill_data else "1080p")
 
         scenes = db.query(Scene).filter_by(project_id=project_id).order_by(Scene.index).all()
-        workflow_path = "wan_workflow_api.json"
-        if not Path(workflow_path).exists():
-            alt = Path("app/workflows/wan_workflow_api.json")
-            workflow_path = str(alt) if alt.exists() else workflow_path
+        from app.backend.pipeline.wan_client import (
+            WanVideoClient, DEFAULT_WORKFLOW, frames_for_seconds,
+        )
+        workflow_path = DEFAULT_WORKFLOW
 
         video_clips = []
-        from app.backend.pipeline.wan_client import WanVideoClient
         try:
+            from app.backend.services import comfyui_manager
+            comfyui_manager.start()
             wan = WanVideoClient(workflow_path)
         except FileNotFoundError:
             wan = None
 
+        # Render clips in the skill's aspect ratio (cropping 16:9 to 9:16 later
+        # throws away 70% of the frame). 480p-class sizes fit an 8 GB GPU.
+        aspect = (skill_data.get("aspect_ratio", "16:9") if skill_data else "16:9")
+        clip_w, clip_h = {"9:16": (480, 832), "1:1": (640, 640)}.get(aspect, (832, 480))
+        clip_seconds = audio_duration / max(len(scenes), 1)
+        clip_frames = frames_for_seconds(min(max(clip_seconds, 2.0), 5.0))
+
         # Smart model routing based on free VRAM
-        model_id, routing_warning = vram_manager.route_video_model("wan2.1-1.3b", free_vram)
+        model_id, routing_warning = vram_manager.route_video_model("wan2.2-ti2v-5b", free_vram)
         if routing_warning:
             _emit(project_id, f"scene_0", 0.29, "running", f"Note: {routing_warning}")
 
@@ -329,6 +337,9 @@ def _run_pipeline(queue_item_id: str, project_id: str):
                 clip_path = wan.generate(
                     prompt=scene.prompt or "",
                     output_dir=str(scenes_dir),
+                    width=clip_w,
+                    height=clip_h,
+                    num_frames=clip_frames,
                     seed=scene.seed,
                 )
                 scene.video_path = clip_path

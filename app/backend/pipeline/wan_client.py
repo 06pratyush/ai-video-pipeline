@@ -1,105 +1,126 @@
-"""Wan2.1 video generation via ComfyUI — adapted from root wan_client.py."""
+"""Wan video generation via ComfyUI.
+
+The workflow JSON is in ComfyUI's API format with readable node ids
+(``positive``, ``negative``, ``latent``, ``sampler``, ``save``). Values are set on
+those nodes by id, so the negative prompt is never overwritten with the scene
+prompt, and the client fails loudly instead of polling forever.
+
+Default workflow: ``app/workflows/wan22_ti2v_5b_gguf.json`` (Wan2.2 TI2V 5B, GGUF,
+fits an 8 GB laptop GPU).
+"""
 import json
 import time
 import uuid
-import requests
 from pathlib import Path
 
+import requests
+
 COMFYUI_URL = "http://localhost:8188"
+DEFAULT_WORKFLOW = "app/workflows/wan22_ti2v_5b_gguf.json"
+
+# Wan2.2 TI2V-5B: width/height must be multiples of 32, length = 4k + 1 frames, 24 fps.
+FPS = 24
+
+
+def frames_for_seconds(seconds: float) -> int:
+    """Nearest valid Wan frame count (4k + 1) for a clip length in seconds."""
+    k = max(1, round(seconds * FPS / 4))
+    return 4 * k + 1
 
 
 class WanVideoClient:
-    def __init__(self, workflow_path: str, comfyui_url: str = COMFYUI_URL):
+    def __init__(self, workflow_path: str = DEFAULT_WORKFLOW, comfyui_url: str = COMFYUI_URL):
         self.comfyui_url = comfyui_url
         wf_file = Path(workflow_path)
         if not wf_file.exists():
             raise FileNotFoundError(f"Workflow JSON not found: {workflow_path}")
-        with open(wf_file) as f:
-            self.workflow_template = json.load(f)
+        self.workflow_template = json.loads(wf_file.read_text(encoding="utf-8"))
+        for node_id in ("positive", "latent", "sampler", "save"):
+            if node_id not in self.workflow_template:
+                raise ValueError(f"Workflow {workflow_path} has no '{node_id}' node")
 
     def generate(
         self,
         prompt: str,
         output_dir: str,
-        width: int = 832,
-        height: int = 480,
-        num_frames: int = 81,
+        width: int = 480,
+        height: int = 832,
+        num_frames: int = 73,
         steps: int = 20,
         seed: int | None = None,
+        negative_prompt: str | None = None,
+        timeout_s: float = 3600,
         progress_callback=None,
     ) -> str:
-        """Submit prompt to ComfyUI and poll until done. Returns output video path."""
-        workflow = json.loads(json.dumps(self.workflow_template))
-        actual_seed = seed if seed is not None else int(time.time() * 1000) % (2**32)
-
-        for node in workflow.values():
-            inputs = node.get("inputs", {})
-            if "positive" in inputs or "text" in inputs:
-                for key in ("text", "positive"):
-                    if key in inputs:
-                        inputs[key] = prompt
-            if "seed" in inputs:
-                inputs["seed"] = actual_seed
-            if "width" in inputs:
-                inputs["width"] = width
-            if "height" in inputs:
-                inputs["height"] = height
-            if "num_frames" in inputs or "frame_count" in inputs:
-                for key in ("num_frames", "frame_count"):
-                    if key in inputs:
-                        inputs[key] = num_frames
-            if "steps" in inputs:
-                inputs["steps"] = steps
+        """Submit one clip to ComfyUI and wait for it. Returns the saved MP4 path."""
+        wf = json.loads(json.dumps(self.workflow_template))
+        wf["positive"]["inputs"]["text"] = prompt
+        if negative_prompt and "negative" in wf:
+            wf["negative"]["inputs"]["text"] = negative_prompt
+        wf["latent"]["inputs"].update(
+            width=int(width) // 32 * 32,
+            height=int(height) // 32 * 32,
+            length=int(num_frames),
+        )
+        wf["sampler"]["inputs"]["seed"] = (
+            int(seed) if seed is not None else int(time.time() * 1000) % (2**32)
+        )
+        wf["sampler"]["inputs"]["steps"] = int(steps)
 
         client_id = str(uuid.uuid4())
-        payload = {"prompt": workflow, "client_id": client_id}
-        resp = requests.post(f"{self.comfyui_url}/prompt", json=payload, timeout=30)
-        resp.raise_for_status()
+        resp = requests.post(
+            f"{self.comfyui_url}/prompt", json={"prompt": wf, "client_id": client_id}, timeout=30
+        )
+        if resp.status_code != 200:
+            raise RuntimeError(f"ComfyUI rejected the workflow: {resp.text[:800]}")
         prompt_id = resp.json()["prompt_id"]
+        return self._wait(prompt_id, output_dir, timeout_s, progress_callback)
 
-        output_path = self._poll_until_done(prompt_id, client_id, output_dir, progress_callback)
-        return output_path
-
-    def _poll_until_done(
-        self, prompt_id: str, client_id: str, output_dir: str, progress_callback=None
-    ) -> str:
+    def _wait(self, prompt_id: str, output_dir: str, timeout_s: float, progress_callback) -> str:
         Path(output_dir).mkdir(parents=True, exist_ok=True)
-        while True:
+        deadline = time.time() + timeout_s
+        while time.time() < deadline:
             time.sleep(2)
-            resp = requests.get(f"{self.comfyui_url}/history/{prompt_id}", timeout=10)
-            history = resp.json()
-            if prompt_id not in history:
+            history = requests.get(f"{self.comfyui_url}/history/{prompt_id}", timeout=10).json()
+            entry = history.get(prompt_id)
+            if not entry:
                 if progress_callback:
-                    progress_callback(0.0, "waiting")
+                    progress_callback(0.0, "rendering")
                 continue
-
-            entry = history[prompt_id]
-            if "outputs" not in entry:
+            status = entry.get("status", {})
+            if status.get("status_str") == "error":
+                msgs = [m for m in status.get("messages", []) if m[0] == "execution_error"]
+                detail = msgs[-1][1].get("exception_message", "") if msgs else "unknown error"
+                raise RuntimeError(f"ComfyUI failed: {detail}")
+            if not status.get("completed"):
                 continue
+            # SaveVideo reports its file under "images" (with animated: true);
+            # older video nodes used "videos" or "gifs". Accept any of them.
+            for node_output in entry.get("outputs", {}).values():
+                for key in ("videos", "gifs", "images"):
+                    for item in node_output.get(key, []):
+                        name = item.get("filename", "")
+                        if name.lower().endswith((".mp4", ".webm", ".mkv", ".mov")):
+                            dest = Path(output_dir) / Path(name).name
+                            self._download(item, dest)
+                            return str(dest)
+            raise RuntimeError("ComfyUI finished but produced no video file")
+        raise TimeoutError(f"ComfyUI did not finish within {timeout_s:.0f}s")
 
-            for node_output in entry["outputs"].values():
-                if "videos" in node_output:
-                    for vid in node_output["videos"]:
-                        filename = vid["filename"]
-                        subfolder = vid.get("subfolder", "")
-                        dl_url = (
-                            f"{self.comfyui_url}/view?"
-                            f"filename={filename}&subfolder={subfolder}&type=output"
-                        )
-                        dest = Path(output_dir) / filename
-                        self._download(dl_url, str(dest))
-                        return str(dest)
-
-    def _download(self, url: str, dest: str):
-        resp = requests.get(url, stream=True, timeout=60)
-        resp.raise_for_status()
-        with open(dest, "wb") as f:
-            for chunk in resp.iter_content(chunk_size=8192):
-                f.write(chunk)
+    def _download(self, item: dict, dest: Path):
+        params = {
+            "filename": item["filename"],
+            "subfolder": item.get("subfolder", ""),
+            "type": item.get("type", "output"),
+        }
+        with requests.get(f"{self.comfyui_url}/view", params=params, stream=True, timeout=120) as r:
+            r.raise_for_status()
+            with open(dest, "wb") as f:
+                for chunk in r.iter_content(chunk_size=1 << 20):
+                    f.write(chunk)
 
     def health_check(self) -> bool:
         try:
-            resp = requests.get(f"{self.comfyui_url}/system_stats", timeout=5)
-            return resp.status_code == 200
+            return requests.get(f"{self.comfyui_url}/system_stats", timeout=5).status_code == 200
         except Exception:
             return False

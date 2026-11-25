@@ -6,10 +6,9 @@ __pycache__/
 *.pyc
 *.pyo
 
-# Output files (too large for GitHub)
-outputs/audio/
-outputs/video/
-outputs/final/
+# Output files (too large for GitHub). outputs/scripts/ holds sample scripts and stays tracked.
+outputs/*
+!outputs/scripts/
 app/projects/
 
 # Runtime / bundled assets (downloaded at install time)
@@ -20,9 +19,9 @@ app/runtime/models/
 # Database
 app/backend/db.sqlite
 
-# Workflow JSON (machine specific)
+# Legacy SD1.5 workflow (machine specific). The v2 workflows in app/workflows/ name models
+# by file name only, so they are portable and tracked.
 wan_workflow_api.json
-app/workflows/
 
 # Environment variables
 .env

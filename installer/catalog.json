@@ -2,6 +2,24 @@
   "version": "1.1",
   "models": [
     {
+      "id": "wan2.2-ti2v-5b",
+      "name": "Wan2.2 TI2V 5B (GGUF Q4_K_M)",
+      "type": "video",
+      "vram_required_mb": 6144,
+      "size_gb": 8.5,
+      "quality_tier": "balanced",
+      "description": "Default video model. Text- and image-to-video, 24 fps. 4-bit GGUF so the model, text encoder and VAE fit an 8 GB laptop GPU with 16 GB RAM. Apache-2.0.",
+      "compatible_skills": ["documentary", "explainer", "product", "cinematic", "short", "tutorial", "news"],
+      "install_method": "huggingface",
+      "files": [
+        {"hf_repo": "QuantStack/Wan2.2-TI2V-5B-GGUF", "file": "Wan2.2-TI2V-5B-Q4_K_M.gguf", "bytes": 3433116000, "install_path": "app/runtime/comfyui/models/unet"},
+        {"hf_repo": "city96/umt5-xxl-encoder-gguf", "file": "umt5-xxl-encoder-Q4_K_M.gguf", "bytes": 3655145312, "install_path": "app/runtime/comfyui/models/text_encoders"},
+        {"hf_repo": "Comfy-Org/Wan_2.2_ComfyUI_Repackaged", "file": "split_files/vae/wan2.2_vae.safetensors", "bytes": 1409400960, "install_path": "app/runtime/comfyui/models/vae"}
+      ],
+      "requires_custom_nodes": ["https://github.com/city96/ComfyUI-GGUF"],
+      "workflow": "app/workflows/wan22_ti2v_5b_gguf.json"
+    },
+    {
       "id": "wan2.1-1.3b",
       "name": "Wan2.1 1.3B",
       "type": "video",
