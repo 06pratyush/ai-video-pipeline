@@ -9,6 +9,15 @@ except ImportError:
     KPipeline = None  # deferred — will raise at generate() time if missing
 
 
+def _device() -> str:
+    """Run Kokoro on the GPU when PyTorch can see one."""
+    try:
+        import torch
+        return "cuda" if torch.cuda.is_available() else "cpu"
+    except ImportError:
+        return "cpu"
+
+
 VOICES = [
     "af_heart", "af_bella", "af_sarah", "af_nicole",
     "am_adam", "am_michael", "bf_emma", "bm_george",
@@ -24,7 +33,8 @@ class KokoroTTSClient:
         self.voice = voice
         self.speed = speed
         self.sample_rate = 24000
-        self._pipeline = KPipeline(lang_code=lang)
+        self.device = _device()
+        self._pipeline = KPipeline(lang_code=lang, device=self.device)
 
     def generate(self, text: str, output_path: str) -> tuple[str, float]:
         """Generate WAV from text. Returns (output_path, duration_seconds)."""
