@@ -258,3 +258,15 @@
 - **Context Modifications:** None beyond the files listed.
 
 ---
+
+- **Timestamp:** 2026-11-25T13:08:38Z
+- **Trigger Event:** Pull Request (v2 series)
+- **Author/Agent:** Claude Opus 5.5 for 06pratyush
+- **Target Subsystem:** `app/backend/pipeline/smooth_client.py`, `app/workflows/rife_upscale.json`
+- **Intent:** Smoother motion. Wan renders at 24 fps; v1 then held the last frame of every clip, so scenes stuttered and froze. The existing `rife_client.py` was not RIFE at all but FFmpeg `minterpolate` blend mode on the CPU, and `esrgan_client.py` was FFmpeg `super2xbr`.
+- **Bugs Discovered:** ComfyUI-Frame-Interpolation fetches its RIFE weights from a list of mirrors including personal Hugging Face repos and loads them with `torch.load(weights_only=False)`, which executes pickled code. Left alone, a first run could pull an untrusted pickle.
+- **Fixes Applied:** A ComfyUI workflow on the GPU: LoadVideo -> RIFE 4.9 (x2, fp16) -> Real-ESRGAN x2 -> CreateVideo 48 fps -> SaveVideo. `SmoothClient.smooth()` uploads the clip and returns a 48 fps file; `upscale=False` rewires RIFE straight to the video node. `smooth_or_fallback()` keeps the old CPU path when ComfyUI is down. The RIFE weights are pre-placed from the node author's own GitHub release, recorded in the catalog with their sha256, and confirmed to load with `weights_only=True`, so the node never reaches the mirror list.
+- **Verification:** Ran on a real v1 Wan clip on the RTX 4060: 121 frames at 24 fps in, 241 frames at 48 fps out, 37 s, RIFE on CUDA. The first attempt returned the *input* clip (121 frames at 24 fps), which is how the output-type bug in the previous entry was found; rerun after the fix gave 241/48.
+- **Context Modifications:** None beyond the files listed.
+
+---
