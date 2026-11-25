@@ -282,3 +282,15 @@
 - **Context Modifications:** None beyond the files listed.
 
 ---
+
+- **Timestamp:** 2026-11-25T13:11:09Z
+- **Trigger Event:** Pull Request (v2 series)
+- **Author/Agent:** Claude Opus 5.5 for 06pratyush
+- **Target Subsystem:** `app/backend/pipeline/story_edit.py`, `scripts/render_story.py`, `stories/noahs_ark.json`
+- **Intent:** Make the cut feel smooth and in sync with the voice: no frozen holds, no dip-to-black between every scene, captions that follow the actual spoken words, music under the voice. And wire every v2 stage into one command.
+- **Bugs Discovered:** v1 captions were timed by word count in proportion to each line, so they drifted from the voice. v1 slowed clips by up to 25% and then froze on the last frame, and faded every scene to black. The first v2 caption pass left single words alone on screen (e.g. "CLOSED.", "GOD.") when a sentence ended one word after a full chunk; fixed by merging a lone word into the chunk nearest in time.
+- **Fixes Applied:** `story_edit` (pure functions, list-argument FFmpeg only): a timeline where each scene's segment runs 0.4 s past its slot and the next scene dissolves in exactly as its narration line starts, so total length equals the narration; a per-scene filter that slows at most 15% and then keeps a slow 5% camera push running through any hold so nothing freezes; captions that keep the script's words but take faster-whisper's timings (difflib alignment, gaps interpolated), grouped 2-4 words, one ASS event per spoken word with the active word in amber, all text ASS-escaped; music ducked under the voice with sidechaincompress, faded, then the mix loudness-normalised to -14 LUFS. `render_story.py` now runs voice -> refs -> keyframes -> clips -> smooth -> music -> edit, each stage skipping finished files, `--only` redoing chosen scenes, `/free` between GPU stages, NVENC for every encode when FFmpeg has it. The sample story gains a `characters` block (Noah and the ark itself, so the ark keeps one design), `consistency: kontext`, a music prompt, and motion verbs in every prompt.
+- **Verification:** Ran voice-timing + edit on the 13 v1 Wan clips: 77.0 s, 1080x1920, NVENC, integrated loudness -14.4 LUFS, dissolve frames inspected at the scene 1->2 boundary, contact sheet inspected for caption placement and highlight. Whisper timing was not exercised in this run (faster-whisper not yet installed in the backend venv; the stage now warns and falls back instead of crashing).
+- **Context Modifications:** None beyond the files listed.
+
+---
