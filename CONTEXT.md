@@ -270,3 +270,15 @@
 - **Context Modifications:** None beyond the files listed.
 
 ---
+
+- **Timestamp:** 2026-11-25T13:08:38Z
+- **Trigger Event:** Pull Request (v2 series)
+- **Author/Agent:** Claude Opus 5.5 for 06pratyush
+- **Target Subsystem:** `app/backend/pipeline/music_client.py`, `app/workflows/ace_step_music.json`
+- **Intent:** AI background music on the GPU. v1's MusicGen path needed audiocraft (hard to install on Windows, not installed here) and MusicGen's weights are CC-BY-NC, so its music could not go in a monetised video.
+- **Bugs Discovered:** None.
+- **Fixes Applied:** ACE-Step v1 3.5B (Apache-2.0) runs natively in ComfyUI: CheckpointLoaderSimple -> ModelSamplingSD3 (shift 5) -> TextEncodeAceStepAudio with `[inst]` lyrics for instrumental -> EmptyAceStepLatentAudio -> KSampler (euler, 50 steps, cfg 5) -> VAEDecodeAudio -> SaveAudio (FLAC). `MusicClient.generate()` takes either a skill mood key (mapped to ACE-Step style tags) or free tags, and a length clamped to 5-600 s. `musicgen_client.py` is kept as a fallback.
+- **Verification:** Node types confirmed present in the running ComfyUI. Music generation is verified in the end-to-end entry once the 7.7 GB checkpoint finishes downloading.
+- **Context Modifications:** None beyond the files listed.
+
+---
