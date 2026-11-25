@@ -306,3 +306,15 @@
 - **Context Modifications:** None beyond the files listed.
 
 ---
+
+- **Timestamp:** 2026-11-25T13:13:31Z
+- **Trigger Event:** Pull Request (v2 series)
+- **Author/Agent:** Claude Opus 5.5 for 06pratyush
+- **Target Subsystem:** `app/backend/tests/test_v2_pipeline.py`
+- **Intent:** Pin v2's behaviour and its safety properties with tests that run on any machine (no GPU, no ComfyUI, no models).
+- **Bugs Discovered:** None new; two found earlier in the series are now pinned: the client returning a loader node's *input* file, and lone single-word captions.
+- **Fixes Applied:** 20 tests, runnable with plain Python or pytest. Workflows: every JSON is API-format and every link resolves; Wan t2v/i2v build without mutating the template or overwriting the negative prompt; FLUX modes, Kontext requires a reference, keyframe sizes are ~1 MP multiples of 16; RIFE-without-upscale rewires correctly; music length clamps. ComfyClient against a fake HTTP server: skips `input` items and downloads the saved output, surfaces ComfyUI's error text with node id/type, reports rejections, times out, and uploads under a generated name even when the local file is called `..%2f..%2fevil.png`. Timeline: dissolves land on line starts and total length equals the narration. Captions: script words keep whisper timing, no lone words, hostile ASS override text is escaped. FFmpeg: the segment and mix filtergraphs parse in the real FFmpeg. Safety: no `shell=True` anywhere in pipeline/services/scripts (AST check), no `trust_remote_code`, ComfyUI URL and `--listen` are 127.0.0.1, setup_models refuses non-https/foreign hosts and paths that escape the repo and accepts every catalog entry, story character keys cannot become paths, the sample story loads with every placeholder filled.
+- **Verification:** `venv311/Scripts/python.exe app/backend/tests/test_v2_pipeline.py` -> 20 passed, 0 failed.
+- **Context Modifications:** GAP-06 (httpx not declared) is untouched by these tests: they need only requests and the standard library.
+
+---
