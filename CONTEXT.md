@@ -330,3 +330,15 @@
 - **Context Modifications:** Gemma itself was not exercised: no Ollama model is installed on the test machine, which is exactly the case the new fallback covers.
 
 ---
+
+- **Timestamp:** 2026-11-25T20:07:15Z
+- **Trigger Event:** Pull Request (v2 series)
+- **Author/Agent:** Claude Opus 5.5 for 06pratyush
+- **Target Subsystem:** `README.md`, `app/backend/version.py`, `app/frontend/package.json`, `package-lock.json`
+- **Intent:** Mark this branch as AI Video Studio 2.0.0, the next major version after v1.0.0, and document what changed, which models it uses under which licences, and what it costs in time on a laptop.
+- **Bugs Discovered:** README still described Wan2.1, MusicGen and CPU-only frame interpolation and upscaling, none of which v2 uses by default.
+- **Fixes Applied:** Version 2.0.0 (backend VERSION, build `v2-laptop-gpu`; frontend package and lock). README: v2.0.0 badge and alt text; a 'What's new in v2' section with a v1-vs-v2 table, the v2 model table with sizes and licences (Kontext flagged non-commercial), timings measured on the RTX 4060 Laptop for every stage and the whole sample film, a laptop quick start (setup_models, doctor, render_story) and the story-file format incl. `keyframe` / `keyframe_seed`; pipeline diagram, stage table, requirements, licence FAQ and acknowledgements updated from Wan2.1/MusicGen to Wan2.2/FLUX/RIFE/ACE-Step; installer file names 2.0.0.
+- **Verification:** `GET /version` on the running backend returns {version: 2.0.0, build: v2-laptop-gpu}. Every timing in the README table comes from the logs of the Noah v2 render and the app smoke test in the previous commit. No Wan2.1 references remain outside the v1 column of the comparison table.
+- **Context Modifications:** No tag is created here: v2.0.0 is tagged by the maintainer after the PR is merged (release.yml builds installers on v* tags).
+
+---

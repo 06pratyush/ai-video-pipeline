@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="https://img.shields.io/badge/AI%20VIDEO%20STUDIO-1.0.0-6366f1?style=for-the-badge&labelColor=0a0a0b" alt="AI Video Studio v1.0.0" />
+<img src="https://img.shields.io/badge/AI%20VIDEO%20STUDIO-2.0.0-6366f1?style=for-the-badge&labelColor=0a0a0b" alt="AI Video Studio v2.0.0" />
 
 # AI Video Studio
 
@@ -44,20 +44,97 @@ subscription, and no footage ever leaves your machine.
 
 It is a self-hosted alternative to hosted text-to-video services such as Runway, Pika and Sora, for
 people who need offline operation, unlimited renders, or full control over their content pipeline.
-Every stage is local: [Wan2.1](https://github.com/Wan-AI/Wan2.1) renders the video through
-[ComfyUI](https://github.com/comfyanonymous/ComfyUI), [Gemma](https://ai.google.dev/gemma) via
+Every stage is local and runs on your GPU: [Gemma](https://ai.google.dev/gemma) via
 [Ollama](https://ollama.com) rewrites your script into scene prompts,
-[Kokoro TTS](https://github.com/hexgrad/kokoro) speaks the narration,
-[faster-whisper](https://github.com/SYSTRAN/faster-whisper) writes the subtitles,
-[MusicGen](https://github.com/facebookresearch/audiocraft) scores it, and
-[FFmpeg](https://ffmpeg.org) assembles the result.
+[FLUX](https://github.com/black-forest-labs/flux) draws each character once and then every scene's
+first frame, [Wan2.2](https://github.com/Wan-Video/Wan2.2) animates those frames through
+[ComfyUI](https://github.com/comfyanonymous/ComfyUI), [RIFE](https://github.com/hzwer/ECCV2022-RIFE)
+smooths the motion to 48 fps, [Kokoro TTS](https://github.com/hexgrad/kokoro) speaks the narration,
+[faster-whisper](https://github.com/SYSTRAN/faster-whisper) times every word for the captions,
+[ACE-Step](https://github.com/ace-step/ACE-Step) scores it, and [FFmpeg](https://ffmpeg.org) (NVENC)
+assembles the result.
 
 | | |
 |---|---|
 | **Use it for** | YouTube explainers · TikTok / Reels / Shorts · documentary narration · product demos · tutorials · news recaps |
-| **Runs on** | Windows 10/11 · Ubuntu 22.04+ · macOS 12+ · NVIDIA GPU with 8 GB VRAM (16 GB+ recommended) |
+| **Runs on** | Windows 10/11 · Ubuntu 22.04+ · macOS 12+ · NVIDIA GPU with 8 GB VRAM — v2 is built and tested on an RTX 4060 **laptop** |
 | **Costs** | Nothing — MIT licensed, no account, no metering, no telemetry |
 | **Docs** | [Architecture](#architecture) · [Skills](#skills) · [Build from source](#build-from-source) · [Troubleshooting](#troubleshooting) · [FAQ](#faq) · [Contributing](CONTRIBUTING.md) · [Review & merge policy](REVIEW_AND_MERGE.md) |
+
+---
+
+## What's new in v2
+
+**Version 2.0 is the next major version of AI Video Studio, after [v1.0.0](https://github.com/06pratyush/ai-video-pipeline/releases/tag/v1.0.0).**
+v1 described the pipeline; v2 is the version that renders a finished, consistent, smooth video on an
+8 GB laptop GPU. Everything below was built and verified on an RTX 4060 Laptop (8 GB VRAM, 16 GB RAM).
+
+| | v1.0.0 | v2.0 |
+|---|---|---|
+| **Renders a video at all** | No: the shipped ComfyUI workflow was an SD1.5 *image* graph, the client waited forever for a key ComfyUI never sends, and ComfyUI could not start (doubled path) | Yes, end to end, on an 8 GB laptop GPU |
+| **Video model** | Wan2.1 1.3B / 14B | **Wan2.2 TI2V-5B**, 4-bit GGUF, text- *and* image-to-video |
+| **Same character in every scene** | No: each clip from text alone | **Character sheet + keyframes**: FLUX draws each character once, then every scene's first frame with that character; Wan2.2 animates from the keyframe |
+| **Smooth motion** | CPU `minterpolate` on the joined film; clips froze on their last frame | **RIFE 4.9 on the GPU, per clip, 24 → 48 fps**; dissolves land exactly on each new line; a slow camera push means no frame ever freezes |
+| **Captions** | Timed by word count, drifting from the voice | **Word-synced**: faster-whisper times every spoken word, the script's own words are shown, the active word is highlighted |
+| **Music** | MusicGen (CC-BY-NC weights, audiocraft hard to install on Windows) | **ACE-Step 3.5B** (Apache-2.0) on the GPU, ducked under the voice, mix at −14 LUFS |
+| **GPU use** | Backend PyTorch was CPU-only | Every model stage on CUDA (TTS, Whisper, FLUX, Wan, RIFE, ESRGAN, ACE-Step), encodes on NVENC; `scripts/doctor.py` proves it |
+| **Upscale** | CPU `super2xbr` | Optional Real-ESRGAN x2 on the GPU |
+| **Model install** | Not wired | `scripts/setup_models.py`: resumable, exact-size and sha256 checked, host-allowlisted |
+| **Tests** | Data-integrity tests | + 20 v2 tests incl. safety (no `shell=True`, local-only ComfyUI, download allowlist, path escapes, caption escaping) |
+
+### v2 models (all local, all on the GPU)
+
+| Stage | Model | Size | Licence |
+|---|---|---|---|
+| Animate | Wan2.2 TI2V-5B GGUF Q4_K_M + UMT5 GGUF + Wan2.2 VAE | 8.5 GB | Apache-2.0 |
+| Keyframes (default) | FLUX.1 schnell GGUF Q4_K_S + T5 GGUF + CLIP-L + VAE | 10.3 GB | Apache-2.0 |
+| Keyframes (best consistency) | FLUX.1 Kontext dev GGUF Q4_K_M | 6.9 GB | **Non-commercial** (FLUX.1 [dev]), flagged in the app |
+| Music | ACE-Step v1 3.5B | 7.7 GB | Apache-2.0 |
+| Smooth / sharpen | RIFE 4.9 · Real-ESRGAN x2plus | 0.09 GB | MIT · BSD-3 |
+| Voice · timing | Kokoro 82M · faster-whisper small.en | 0.6 GB | Apache-2.0 · MIT |
+
+Choose per video: `"consistency": "kontext"` gives the most consistent characters but its output may not be
+monetised; `"schnell"` is fully commercial-friendly.
+
+### Measured on an RTX 4060 Laptop (8 GB VRAM, 16 GB RAM)
+
+The sample `stories/noahs_ark.json` is 13 scenes, 72 s of narration, and comes out as a 77 s,
+1080×1920, 48 fps, stereo film at −13.7 LUFS:
+
+| Stage | Time |
+|---|---|
+| Character sheets (FLUX schnell, 2 characters) | 81 s total |
+| Keyframes (FLUX Kontext, 20 steps) | 3–8 min each, about 70 min for 13 (schnell, 4 steps: under a minute each) |
+| Clips (Wan2.2 5B image-to-video, 121 frames, 480×832, 20 steps) | about 6 min each, about 78 min for 13 |
+| Smoothing (RIFE 4.9, 24 → 48 fps) | 12–39 s each, 4 min 18 s for 13 |
+| Music (ACE-Step 3.5B, 79 s of audio) | 34–40 s |
+| Word timings (faster-whisper small.en, CUDA float16) | seconds, plus a one-time model download |
+| Edit (dissolves, captions, mix, NVENC encode) | about 50 s |
+| **Whole film** | **about 2 h 35 min** |
+
+The app's render queue made a 2-scene project in 16 min. Keyframes are slower than the GPU alone would make
+them: with 16 GB of RAM, ComfyUI cannot keep FLUX and T5 cached between prompts, so it reloads them every time.
+
+### Make a video from a story file (laptop quick start)
+
+```powershell
+venv311\Scripts\python.exe scripts\setup_models.py          # downloads the v2 stack, verified
+venv311\Scripts\python.exe scripts\doctor.py                # every stage ready and on the GPU?
+venv311\Scripts\python.exe scripts\render_story.py stories\noahs_ark.json
+```
+
+`render_story.py` runs seven stages: `voice`, `refs`, `keyframes`, `clips`, `smooth`, `music`, `edit`.
+Each stage skips files that already exist, so an interrupted render resumes. To redo particular scenes, use
+`--stage keyframes --only 8`, then `--stage clips --only 8`. A story file is JSON with these parts:
+- a `style`;
+- `characters`, each with a description and a seed;
+- `consistency`;
+- a `music` prompt and `music_seed`;
+- one `narration` and one `prompt` per scene, with an optional `cast`.
+
+Write `{noah}` in a prompt to insert that character's description. If one keyframe comes out wrong, give
+that scene a `keyframe` prompt (what the still should show, while `prompt` keeps describing the motion)
+and/or a new `keyframe_seed`, then redo it with `--only`.
 
 ---
 
@@ -133,13 +210,13 @@ Write a script. Pick a Skill. Hit Generate. Five to fifteen minutes later you ha
    ║  THE PIPELINE                                                  ║
    ║  ────────────                                                  ║
    ║   [1]  Gemma (Ollama)        refines narration + scene prompts ║
-   ║   [2]  Kokoro TTS            synthesizes voice audio           ║
-   ║   [3]  Wan2.1 (ComfyUI)      generates clips on your GPU       ║
-   ║   [4]  MusicGen              composes background music         ║
-   ║   [5]  Whisper               transcribes -> burned-in subs     ║
-   ║   [6]  minterpolate / RIFE   30fps frame interpolation         ║
-   ║   [7]  super2xbr / ESRGAN    2x upscale to 1080p               ║
-   ║   [8]  FFmpeg                color grade, film grain, mux      ║
+   ║   [2]  Kokoro TTS  (GPU)     synthesizes voice audio           ║
+   ║   [3]  FLUX (ComfyUI, GPU)   character sheet + scene keyframes ║
+   ║   [4]  Wan2.2 5B   (GPU)     animates each keyframe            ║
+   ║   [5]  RIFE 4.9    (GPU)     24 -> 48 fps per clip             ║
+   ║   [6]  ACE-Step    (GPU)     composes background music         ║
+   ║   [7]  Whisper     (GPU)     word timings -> synced captions   ║
+   ║   [8]  FFmpeg      (NVENC)   dissolves, grade, duck, mux       ║
    ╚═════════╤══════════════════════════════════════════════════════╝
              ▼
    ┌───────────────────┐
@@ -155,11 +232,12 @@ Write a script. Pick a Skill. Hit Generate. Five to fifteen minutes later you ha
 | **Refine narration** | Gemma 3 / 4B via Ollama | Always | ~10s |
 | **Generate scene prompts** | Gemma 3 / 4B | Always | ~10s |
 | **Voice synthesis** | Kokoro TTS (8 voices) | Always | ~5s per 100 words |
-| **Background music** | MusicGen Small | Optional | ~30s per scene |
-| **Video clips** | Wan2.1 1.3B / 14B | Always | ~3min per scene |
-| **Frame interpolation** | FFmpeg `minterpolate` | Optional | +30% render time |
-| **Upscaling** | FFmpeg `super2xbr` | Optional | +20% render time |
-| **Subtitles** | faster-whisper Base | Optional | ~10s per audio min |
+| **Keyframes** | FLUX.1 schnell / Kontext (GGUF) | When installed | see v2 timings |
+| **Video clips** | Wan2.2 TI2V-5B GGUF | Always | ~6–7 min per 5 s scene (RTX 4060 Laptop) |
+| **Frame interpolation** | RIFE 4.9 in ComfyUI (GPU) | Default on | ~40 s per scene |
+| **Upscaling** | Real-ESRGAN x2 in ComfyUI (GPU) | Optional | ~7 min per scene |
+| **Background music** | ACE-Step 3.5B (GPU) | With a music mood | see v2 timings |
+| **Subtitles** | faster-whisper (GPU), word timestamps | Optional | seconds |
 | **Color + mux** | FFmpeg `curves` + `eq` + `concat` | Always | ~30s |
 
 </details>
@@ -175,21 +253,21 @@ Write a script. Pick a Skill. Hit Generate. Five to fifteen minutes later you ha
 ### Windows
 NSIS installer or portable .exe
 ```
-AI-Video-Studio-1.0.0-x64.exe
+AI-Video-Studio-2.0.0-x64.exe
 ```
 
 ### Linux
 AppImage (universal) or .deb
 ```
-AI-Video-Studio-1.0.0-x64.AppImage
-AI-Video-Studio-1.0.0-x64.deb
+AI-Video-Studio-2.0.0-x64.AppImage
+AI-Video-Studio-2.0.0-x64.deb
 ```
 
 ### macOS
 DMG for Apple Silicon or Intel
 ```
-AI-Video-Studio-1.0.0-arm64.dmg
-AI-Video-Studio-1.0.0-x64.dmg
+AI-Video-Studio-2.0.0-arm64.dmg
+AI-Video-Studio-2.0.0-x64.dmg
 ```
 
 </td>
@@ -201,7 +279,7 @@ AI-Video-Studio-1.0.0-x64.dmg
 00:00  ░░░░░░░░░░░░░░░░░░░░  Python + venv setup
 01:30  ████░░░░░░░░░░░░░░░░  PyTorch + CUDA download
 06:00  ████████░░░░░░░░░░░░  ComfyUI clone + deps
-10:00  ████████████░░░░░░░░  Wan2.1 model download
+10:00  ████████████░░░░░░░░  Wan2.2 + FLUX model download
 14:00  ████████████████░░░░  Ollama LLM pull
 17:00  ████████████████████  Ready
 ```
@@ -236,14 +314,14 @@ The launcher checks for Python 3.10+ and Node.js 18+, then runs the same bootstr
 
 |                | Minimum                    | Recommended                |
 |----------------|----------------------------|----------------------------|
-| **GPU**        | NVIDIA · 8 GB VRAM · Wan2.1 1.3B | NVIDIA · 16 GB+ VRAM · Wan2.1 14B |
+| **GPU**        | NVIDIA · 8 GB VRAM (laptop OK) · Wan2.2 5B GGUF | NVIDIA · 12 GB+ VRAM |
 | **RAM**        | 16 GB                      | 32 GB                      |
-| **Disk**       | 30 GB free                 | 100 GB free                |
+| **Disk**       | 45 GB free (v2 models ~34 GB) | 100 GB free             |
 | **OS**         | Win 10 · Ubuntu 22.04 · macOS 12 | Win 11 · Ubuntu 24.04 · macOS 14 |
 | **Python**     | 3.10                       | 3.11                       |
 | **Node.js**    | 18 LTS                     | 20 LTS                     |
 
-CPU-only mode runs but is very slow (~10× slower than CUDA). AMD GPUs aren't currently supported by Wan2.1 — track [this issue](https://github.com/Wan-AI/Wan2.1/issues) for ROCm progress.
+CPU-only mode is not practical for video. AMD GPUs are not supported yet. Run `scripts/doctor.py` to confirm that every stage will use your GPU.
 
 ---
 
@@ -358,7 +436,7 @@ Three-tier system designed so each layer can evolve independently:
         ▼                   ▼                  ▼
    ┌─────────┐         ┌─────────┐         ┌─────────┐
    │ Ollama  │         │ ComfyUI │         │ FFmpeg  │
-   │ Gemma   │         │ Wan2.1  │         │ Kokoro  │
+   │ Gemma   │         │ Wan2.2  │         │ Kokoro  │
    │ + LLMs  │         │ + nodes │         │ Whisper │
    └─────────┘         └─────────┘         └─────────┘
         ▲                   ▲                  ▲
@@ -466,7 +544,7 @@ Good places to start, roughly easiest first:
 | **Docs & troubleshooting** | Symptoms you hit that [Troubleshooting](#troubleshooting) does not cover |
 | **Tests** | Automated coverage is a Phase 9 goal; `app/backend/tests/` is the beachhead |
 | **Real-ESRGAN / RIFE nodes** | Native ComfyUI node integrations to replace the FFmpeg fallbacks |
-| **AMD ROCm support** | A working Wan2.1 path for non-NVIDIA GPUs |
+| **AMD ROCm support** | A working Wan2.2 path for non-NVIDIA GPUs |
 | **Mobile companion** | Trigger and monitor renders from a phone |
 
 Before starting anything large, [open an issue](https://github.com/06pratyush/ai-video-pipeline/issues/new/choose)
@@ -501,7 +579,7 @@ outbound request the app ever makes is an optional update check against GitHub R
 
 For usable speed, yes — 8 GB VRAM minimum, 16 GB or more recommended. CPU-only mode runs but is
 roughly 10x slower, which means hours rather than minutes per video. AMD GPUs are not supported yet
-because Wan2.1 has no ROCm path.
+because the GGUF video path has no tested ROCm build.
 
 </details>
 
@@ -528,7 +606,8 @@ needing a capable GPU and the patience for a local render.
 <summary><b>Can I use the generated videos commercially?</b></summary>
 
 The application is MIT licensed, so the code is yours to use. Output rights depend on the models you
-run — Wan2.1, Gemma, Kokoro, MusicGen and Whisper each carry their own licence. Check each model's
+run — Wan2.2, FLUX, ACE-Step, Gemma, Kokoro and Whisper each carry their own licence. FLUX.1 Kontext dev
+is **non-commercial**; use `"consistency": "schnell"` for monetised videos. Check each model's
 terms against your intended use; this project cannot grant rights it does not hold.
 
 </details>
@@ -569,11 +648,15 @@ Built on the shoulders of these excellent open-source projects:
 <td valign="top" width="50%">
 
 **AI Models**
-- [Wan2.1](https://github.com/Wan-AI/Wan2.1) · text-to-video
+- [Wan2.2](https://github.com/Wan-Video/Wan2.2) · text/image-to-video
+- [FLUX.1](https://github.com/black-forest-labs/flux) · keyframes and character sheets
+- [ACE-Step](https://github.com/ace-step/ACE-Step) · music
+- [RIFE](https://github.com/hzwer/ECCV2022-RIFE) · frame interpolation
+- [Real-ESRGAN](https://github.com/xinntao/Real-ESRGAN) · upscaling
 - [Gemma](https://ai.google.dev/gemma) · LLM for script work
 - [Kokoro TTS](https://github.com/hexgrad/kokoro) · text-to-speech
 - [faster-whisper](https://github.com/SYSTRAN/faster-whisper) · transcription
-- [MusicGen](https://github.com/facebookresearch/audiocraft) · music gen
+- [MusicGen](https://github.com/facebookresearch/audiocraft) · music (fallback)
 - [XTTS v2](https://github.com/coqui-ai/TTS) · voice cloning
 
 </td>
@@ -609,6 +692,6 @@ Built on the shoulders of these excellent open-source projects:
 
 <br><br>
 
-<sub>Released under the MIT License · v1.0.0</sub>
+<sub>Released under the MIT License · v2.0.0</sub>
 
 </div>
