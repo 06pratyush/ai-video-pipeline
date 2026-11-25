@@ -12,6 +12,10 @@ MODEL_VRAM_MB: dict[str, int] = {
     "wan2.1-14b":          16384,
     "wan2.1-1.3b":          8192,
     "wan2.2-ti2v-5b":       6144,   # GGUF Q4_K_M + offloaded encoder
+    "flux-schnell":         6144,   # v2 keyframes, GGUF Q4_K_S; T5 encoder offloaded first
+    "flux-kontext":         6656,   # v2 consistent keyframes, GGUF Q4_K_M
+    "ace-step-3.5b":        6144,   # v2 music
+    "rife-esrgan":          2048,   # v2 smoothing + upscale
     "ltx-video":            8192,
     "cogvideox-5b":        12288,
     "animatediff":          6144,

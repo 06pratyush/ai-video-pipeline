@@ -23,6 +23,18 @@ DEFAULT_STEPS = {"schnell": 4, "kontext": 20}
 LICENCE = {"schnell": "apache-2.0", "kontext": "flux-1-dev-non-commercial"}
 
 
+MODEL_FILES = {"schnell": "flux1-schnell-Q4_K_S.gguf", "kontext": "flux1-kontext-dev-Q4_K_M.gguf"}
+SHARED_FILES = ("text_encoders/t5-v1_1-xxl-encoder-Q4_K_M.gguf", "text_encoders/clip_l.safetensors",
+                "vae/ae.safetensors")
+
+
+def available(mode: str, models_dir: str | Path | None = None) -> bool:
+    """True when the model files this mode needs are installed (so the app can default to it)."""
+    base = Path(models_dir) if models_dir else Path(__file__).resolve().parents[2] / "runtime" / "comfyui" / "models"
+    need = [f"unet/{MODEL_FILES[mode]}", *SHARED_FILES]
+    return all((base / n).is_file() for n in need)
+
+
 def snap16(v: int) -> int:
     return max(256, int(v) // 16 * 16)
 

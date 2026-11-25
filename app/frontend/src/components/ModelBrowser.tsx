@@ -168,12 +168,21 @@ export default function ModelBrowser({ onClose }: { onClose: () => void }) {
                         {m.quality_tier}
                       </span>
                       <span className="text-xs text-text-disabled">{TYPE_LABEL[m.type] ?? m.type}</span>
+                      {m.non_commercial && (
+                        <span
+                          className="text-xs text-amber-400 border border-amber-400/40 rounded px-1"
+                          title="Licensed for non-commercial use only. Do not use it for monetised videos."
+                        >
+                          non-commercial
+                        </span>
+                      )}
                     </div>
                     <p className="text-xs text-text-muted mb-1.5">{m.description}</p>
                     <div className="flex gap-3 text-xs text-text-disabled">
                       <span>{m.size_gb}GB</span>
                       <span>{Math.round(m.vram_required_mb / 1024)}GB VRAM</span>
                       <span>{m.install_method}</span>
+                      {m.license && <span>{m.license}</span>}
                     </div>
                   </div>
                   <div className="shrink-0">
@@ -185,9 +194,12 @@ export default function ModelBrowser({ onClose }: { onClose: () => void }) {
                       >
                         {pulling === m.id ? 'Pulling…' : '↓ Install'}
                       </button>
-                    ) : m.install_method === 'huggingface' ? (
-                      <span className="text-xs text-text-disabled px-3 py-1.5 border border-border-subtle rounded">
-                        Via bootstrap
+                    ) : m.install_method === 'huggingface' || m.install_method === 'direct' ? (
+                      <span
+                        className="text-xs text-text-disabled px-3 py-1.5 border border-border-subtle rounded"
+                        title={`python scripts/setup_models.py ${m.id}`}
+                      >
+                        setup_models.py
                       </span>
                     ) : (
                       <span className="text-xs text-text-disabled px-3 py-1.5 border border-border-subtle rounded">
