@@ -15,12 +15,59 @@ def is_available() -> bool:
     return _AVAILABLE
 
 
+def _add_cuda_dll_dirs() -> None:
+    """On Windows, CTranslate2 finds cuBLAS/cuDNN from the nvidia-* pip wheels only if
+    their bin folders are on the DLL search path."""
+    import os
+    import sys
+    if sys.platform != "win32":
+        return
+    try:
+        import nvidia  # namespace package from nvidia-cublas-cu12 / nvidia-cudnn-cu12
+    except ImportError:
+        return
+    for base in getattr(nvidia, "__path__", []):
+        for sub in ("cublas", "cudnn", "cuda_nvrtc"):
+            d = Path(base) / sub / "bin"
+            if d.is_dir():
+                os.add_dll_directory(str(d))
+                os.environ["PATH"] = str(d) + os.pathsep + os.environ.get("PATH", "")
+
+
+def _device() -> tuple[str, str]:
+    """(device, compute_type): float16 on the GPU when CTranslate2 can see one."""
+    try:
+        import ctranslate2
+        if ctranslate2.get_cuda_device_count() > 0:
+            return "cuda", "float16"
+    except Exception:
+        pass
+    return "cpu", "int8"
+
+
 def _get_model(size: str = "base") -> "_WhisperModel":
     if size not in _model_cache:
         if not _AVAILABLE:
             raise ImportError("faster-whisper not installed. Run: pip install faster-whisper")
-        _model_cache[size] = _WhisperModel(size, device="auto", compute_type="int8")
+        _add_cuda_dll_dirs()
+        device, compute_type = _device()
+        _model_cache[size] = _WhisperModel(size, device=device, compute_type=compute_type)
     return _model_cache[size]
+
+
+def word_timestamps(audio_path: str, model_size: str = "base",
+                    language: Optional[str] = None) -> list[dict]:
+    """Every spoken word with its start and end in seconds: [{word, start, end}, ...]."""
+    model = _get_model(model_size)
+    segments, _ = model.transcribe(audio_path, language=language, word_timestamps=True,
+                                   vad_filter=False)
+    words = []
+    for seg in segments:
+        for w in seg.words or []:
+            text = w.word.strip()
+            if text:
+                words.append({"word": text, "start": float(w.start), "end": float(w.end)})
+    return words
 
 
 def _seconds_to_srt_time(seconds: float) -> str:

@@ -234,3 +234,15 @@
 - **Context Modifications:** Stack matrix row for video compute updated; GAP-04 closed for Windows + 8 GB.
 
 ---
+
+- **Timestamp:** 2026-11-25T13:08:09Z
+- **Trigger Event:** Pull Request (v2 series)
+- **Author/Agent:** Claude Opus 5.5 for 06pratyush
+- **Target Subsystem:** `app/backend/pipeline/{kokoro_tts,whisper_client}.py`, `scripts/doctor.py`, `scripts/setup_models.py`
+- **Intent:** Run every model stage on the GPU, and make it checkable. In v1 the backend venv had a CPU-only torch, so Kokoro and faster-whisper ran on the CPU even on an NVIDIA laptop.
+- **Bugs Discovered:** faster-whisper was created with `device="auto", compute_type="int8"`; on Windows CTranslate2 cannot find cuBLAS/cuDNN from the nvidia-* pip wheels unless their `bin` folders are on the DLL search path, so `auto` silently fell back to the CPU. Kokoro's `KPipeline` was never given a device.
+- **Fixes Applied:** Kokoro gets `device=cuda` when PyTorch sees a GPU. whisper_client adds the nvidia wheel DLL folders on Windows, uses CUDA float16 when CTranslate2 reports a device, and gains `word_timestamps()` for v2's word-synced captions. New `scripts/doctor.py` reports PASS/FAIL for: CUDA in both venvs, whisper on CUDA, custom nodes, every v2 model file at its exact catalog size, every workflow node type known to the running ComfyUI, ComfyUI not reachable from the LAN, FFmpeg NVENC. New `scripts/setup_models.py` downloads catalog files resumably, only over https from huggingface.co/github.com, only into the catalog's install_path inside the repo, and verifies size (and sha256 where given).
+- **Verification:** doctor.py run against the live install: ComfyUI CUDA, nodes, Wan files, all five workflows and the 127.0.0.1-only binding pass; backend CUDA checks fail until the cu128 torch wheel finishes installing (recorded honestly; re-verified in a later entry).
+- **Context Modifications:** None beyond the files listed.
+
+---
