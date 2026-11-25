@@ -1,0 +1,10 @@
+{
+  "ckpt": {"class_type": "CheckpointLoaderSimple", "inputs": {"ckpt_name": "ace_step_v1_3.5b.safetensors"}, "_meta": {"title": "ACE-Step v1 3.5B (Apache-2.0)"}},
+  "shift": {"class_type": "ModelSamplingSD3", "inputs": {"model": ["ckpt", 0], "shift": 5.0}, "_meta": {"title": "Flow shift"}},
+  "positive": {"class_type": "TextEncodeAceStepAudio", "inputs": {"clip": ["ckpt", 1], "tags": "", "lyrics": "[inst]", "lyrics_strength": 0.99}, "_meta": {"title": "Style tags (instrumental)"}},
+  "negative": {"class_type": "ConditioningZeroOut", "inputs": {"conditioning": ["positive", 0]}, "_meta": {"title": "Empty negative"}},
+  "latent": {"class_type": "EmptyAceStepLatentAudio", "inputs": {"seconds": 60.0, "batch_size": 1}, "_meta": {"title": "Length"}},
+  "sampler": {"class_type": "KSampler", "inputs": {"model": ["shift", 0], "positive": ["positive", 0], "negative": ["negative", 0], "latent_image": ["latent", 0], "seed": 0, "steps": 50, "cfg": 5.0, "sampler_name": "euler", "scheduler": "simple", "denoise": 1.0}, "_meta": {"title": "Sampler"}},
+  "decode": {"class_type": "VAEDecodeAudio", "inputs": {"samples": ["sampler", 0], "vae": ["ckpt", 2]}, "_meta": {"title": "Decode audio"}},
+  "save": {"class_type": "SaveAudio", "inputs": {"audio": ["decode", 0], "filename_prefix": "aivs/music"}, "_meta": {"title": "Save FLAC"}}
+}
