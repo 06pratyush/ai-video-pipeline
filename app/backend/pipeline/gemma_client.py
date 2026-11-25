@@ -5,6 +5,26 @@ from typing import Optional
 
 OLLAMA_URL = "http://localhost:11434"
 
+FALLBACK_STYLE = ("cinematic film still, soft natural lighting, slow camera movement, "
+                  "rich detail, high quality animation")
+
+
+def narration_prompts(narration: str, num_scenes: int, style: Optional[str] = None) -> list[str]:
+    """Scene prompts without an LLM: split the narration into num_scenes runs of whole
+    sentences, so each scene still shows its own part of the story."""
+    import re
+    num_scenes = max(1, int(num_scenes))
+    sentences = [s.strip() for s in re.split(r"(?<=[.!?])\s+", narration.strip()) if s.strip()]
+    if not sentences:
+        sentences = [narration.strip() or "a beautiful landscape"]
+    n = len(sentences)
+    groups = [sentences[i * n // num_scenes:(i + 1) * n // num_scenes] for i in range(num_scenes)]
+    out, last = [], sentences[0]
+    for g in groups:
+        last = " ".join(g) if g else last  # fewer sentences than scenes: reuse the previous one
+        out.append(f"{last.rstrip('.!?')}, {style or FALLBACK_STYLE}")
+    return out
+
 
 class GemmaClient:
     def __init__(self, model: str = "gemma4:e4b", ollama_url: str = OLLAMA_URL):
@@ -68,7 +88,11 @@ class GemmaClient:
             f"- Style: high quality, 4k, photorealistic\n\n"
             f'Output as JSON array: ["prompt1", "prompt2", ...]'
         )
-        response = self.call(prompt, system)
+        try:
+            response = self.call(prompt, system)
+        except Exception as e:  # Ollama down or no model pulled: still render, from the narration
+            print(f"[GEMMA] prompt generation unavailable ({e}); using the narration as prompts")
+            return narration_prompts(narration, num_scenes, skill_template)
         try:
             clean = response.strip()
             if clean.startswith("```"):
@@ -77,15 +101,11 @@ class GemmaClient:
                 if clean.lower().startswith("json"):
                     clean = clean[4:]
             prompts = json.loads(clean.strip())
-            if not isinstance(prompts, list):
-                raise ValueError("Response is not a list")
+            if not isinstance(prompts, list) or not all(isinstance(p, str) for p in prompts):
+                raise ValueError("Response is not a list of strings")
             return prompts
         except (json.JSONDecodeError, ValueError):
-            fallback = (
-                "Cinematic abstract visualization, flowing particles of light, "
-                "deep blue and gold colors, slow camera movement, photorealistic, 4k"
-            )
-            return [fallback] * num_scenes
+            return narration_prompts(narration, num_scenes, skill_template)
 
     def list_models(self) -> list[dict]:
         """Return all models installed in Ollama."""

@@ -198,8 +198,10 @@ def mix_filter(total: float, voice: str = "[0:a]", music: str = "[1:a]",
     whole mix loudness-normalised to -14 LUFS (YouTube/Shorts target)."""
     fade_out_at = max(0.0, total - 2.5)
     return (
-        f"{voice}aresample=48000,asplit=2[vkey][vmix];"
-        f"{music}aresample=48000,atrim=duration={total:.3f},volume={music_db}dB,"
+        # amix takes its layout from the first input: lift the mono voice to stereo (centred)
+        # so the music keeps its width instead of being folded down to mono.
+        f"{voice}aresample=48000,aformat=channel_layouts=stereo,asplit=2[vkey][vmix];"
+        f"{music}aresample=48000,aformat=channel_layouts=stereo,atrim=duration={total:.3f},volume={music_db}dB,"
         f"afade=t=in:d=1.5,afade=t=out:st={fade_out_at:.3f}:d=2.5[m];"
         "[m][vkey]sidechaincompress=threshold=0.03:ratio=8:attack=30:release=500[duck];"
         "[vmix][duck]amix=inputs=2:duration=first:normalize=0,"

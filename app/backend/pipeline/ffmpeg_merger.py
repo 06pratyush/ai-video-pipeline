@@ -94,12 +94,14 @@ def merge_with_background_music(
     music_volume: float = 0.12,
 ) -> str:
     """
-    Mix narration + background music with auto-ducking.
-    Music is looped to match duration, then ducked under narration.
+    Mix narration + background music (v2): stereo, music ducked under the voice with a
+    sidechain compressor, faded in/out, loudness-normalised to -14 LUFS.
+    Music is looped in case it is shorter than the narration.
     """
+    import math
+    from app.backend.pipeline.story_edit import mix_filter
     os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
-    # amix: narration at full volume, music at music_volume
-    # Stream loop music in case it's shorter than narration
+    music_db = 20 * math.log10(max(music_volume, 1e-3)) + 6.0  # ducking now does the rest
     cmd = [
         "ffmpeg", "-y",
         "-stream_loop", "-1", "-i", video_path,
@@ -107,9 +109,7 @@ def merge_with_background_music(
         "-stream_loop", "-1", "-i", music_path,
         "-t", str(audio_duration),
         "-filter_complex",
-        f"[1:a]volume=1.0[narr];"
-        f"[2:a]volume={music_volume}[music];"
-        "[narr][music]amix=inputs=2:duration=first:dropout_transition=2[aout]",
+        mix_filter(float(audio_duration), voice="[1:a]", music="[2:a]", music_db=round(music_db, 1)),
         "-map", "0:v", "-map", "[aout]",
         "-c:v", "libx264", "-c:a", "aac", "-b:a", "192k",
         "-pix_fmt", "yuv420p", "-movflags", "+faststart",

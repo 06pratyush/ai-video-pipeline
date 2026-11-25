@@ -2,7 +2,7 @@
 from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
-from typing import Optional
+from typing import Literal, Optional
 import asyncio
 import json
 
@@ -67,8 +67,10 @@ async def progress_ws(websocket: WebSocket, project_id: str):
 class RenderOpts(BaseModel):
     subtitles: bool = False
     music: bool = False
-    interpolation: bool = False
-    upscaling: bool = False
+    interpolation: bool = True   # v2: RIFE 48 fps on the GPU is on unless switched off
+    upscaling: bool = False      # Real-ESRGAN x2 adds ~7 min per clip on an 8 GB laptop GPU
+    # v2 keyframes: None = schnell when installed; "kontext" is non-commercial (FLUX.1 dev licence)
+    consistency: Optional[Literal["none", "schnell", "kontext"]] = None
 
 
 class GenerateRequest(BaseModel):
