@@ -253,18 +253,9 @@ def _run_pipeline(queue_item_id: str, project_id: str):
         if not want_music and skill_data:
             # Also auto-enable if skill has a music_mood set
             want_music = bool(skill_data.get("music_mood"))
-        if want_music:
-            _emit(project_id, "music", 0.22, "running", "Generating background music...")
-            try:
-                from app.backend.pipeline.musicgen_client import generate_music, is_available
-                if is_available():
-                    mood = (skill_data.get("music_mood") if skill_data else None) or "ambient_score"
-                    music_out = str(audio_dir / "background_music.wav")
-                    music_path = generate_music(mood, audio_duration, music_out)
-                else:
-                    print("[QUEUE] MusicGen not available, skipping background music")
-            except Exception as e:
-                print(f"[QUEUE] Music generation failed (non-fatal): {e}")
+        # v2: music is made on the GPU by ACE-Step in ComfyUI *after* the clips (below),
+        # once the LLM has left the GPU. MusicGen remains the fallback.
+        music_mood = ((skill_data.get("music_mood") if skill_data else None) or "ambient_score")
 
         # ── Step 4: Generate video clips ─────────────────────────────
         # Unload LLM from VRAM before loading video model
@@ -300,6 +291,48 @@ def _run_pipeline(queue_item_id: str, project_id: str):
         if routing_warning:
             _emit(project_id, f"scene_0", 0.29, "running", f"Note: {routing_warning}")
 
+        # ── v2: keyframes for consistent characters ───────────────────
+        # Scene 1 is drawn by FLUX schnell; with "kontext" every later scene is drawn by
+        # FLUX Kontext *from scene 1's keyframe*, so the same characters and look carry
+        # through. Wan2.2 then animates each keyframe (image-to-video).
+        from app.backend.pipeline import image_client
+        consistency = render_opts.get("consistency")
+        if consistency is None:
+            consistency = "schnell" if image_client.available("schnell") else "none"
+        if consistency == "kontext" and not image_client.available("kontext"):
+            consistency = "schnell" if image_client.available("schnell") else "none"
+        keyframes: dict[int, str] = {}
+        if wan is not None and consistency != "none":
+            from app.backend.pipeline.comfy_client import ComfyClient
+            ComfyClient().free()
+            kw, kh = image_client.keyframe_size(clip_w, clip_h)
+            style = (skill_data.get("style_suffix") or "") if skill_data else ""
+            first_key: str | None = None
+            clients: dict[str, image_client.ImageClient] = {}
+            for i, scene in enumerate(scenes):
+                _abort_if_cancelled(queue_item_id)
+                if scene.status == "locked" and scene.video_path and Path(scene.video_path).exists():
+                    continue
+                _emit(project_id, f"keyframe_{i+1}", 0.25 + 0.05 * i / max(len(scenes), 1),
+                      "running", f"Drawing keyframe {i+1}/{len(scenes)}...")
+                dest = scenes_dir / f"key_{i:02d}.png"
+                use = "kontext" if (consistency == "kontext" and first_key) else "schnell"
+                try:
+                    client = clients.setdefault(use, image_client.ImageClient(use))
+                    text = ", ".join(t for t in (scene.prompt or "", style) if t)
+                    if use == "kontext":
+                        text = ("Keep the same characters, faces, clothing and art style as this "
+                                f"image, in a new scene: {text}")
+                        client.generate(text, dest, kw, kh, seed=(scene.seed or 0) + 2000,
+                                        reference=first_key)
+                    else:
+                        client.generate(text, dest, kw, kh, seed=(scene.seed or 0) + 2000)
+                    keyframes[i] = str(dest)
+                    first_key = first_key or str(dest)
+                except Exception as e:
+                    print(f"[QUEUE] Keyframe {i+1} failed (clip falls back to text-only): {e}")
+            ComfyClient().free()
+
         for i, scene in enumerate(scenes):
             # Cancellation is checked per scene: scene generation is the long pole,
             # so this is the granularity at which a cancel can actually take effect.
@@ -312,8 +345,9 @@ def _run_pipeline(queue_item_id: str, project_id: str):
             prog = 0.3 + (0.4 * i / max(len(scenes), 1))
 
             # ── Cache check ───────────────────────────────────────────
+            cache_model = f"{model_id}+{consistency}"
             cache_hit = generation_cache.get(
-                scene.prompt or "", scene.seed, model_id, skill_resolution
+                scene.prompt or "", scene.seed, cache_model, skill_resolution
             )
             if cache_hit:
                 dest = str(scenes_dir / f"scene_{i:02d}_cached.mp4")
@@ -341,6 +375,7 @@ def _run_pipeline(queue_item_id: str, project_id: str):
                     height=clip_h,
                     num_frames=clip_frames,
                     seed=scene.seed,
+                    start_image=keyframes.get(i),
                 )
                 scene.video_path = clip_path
                 scene.status = "done"
@@ -348,7 +383,7 @@ def _run_pipeline(queue_item_id: str, project_id: str):
                 video_clips.append(clip_path)
                 # Store in cache for future runs
                 generation_cache.put(
-                    scene.prompt or "", scene.seed, model_id, skill_resolution, clip_path
+                    scene.prompt or "", scene.seed, cache_model, skill_resolution, clip_path
                 )
             except Exception as e:
                 scene.status = "error"
@@ -362,7 +397,49 @@ def _run_pipeline(queue_item_id: str, project_id: str):
         if not video_clips:
             raise RuntimeError("No video clips generated")
 
-        _emit(project_id, "merging", 0.72, "running", "Merging clips...")
+        # ── v2: smooth each clip on the GPU (RIFE 48 fps + optional ESRGAN x2) ──
+        want_interp = render_opts.get("interpolation", True)
+        want_upscale = render_opts.get("upscaling", False)
+        gpu_smoothed = False
+        if want_interp and wan is not None:
+            try:
+                from app.backend.pipeline.smooth_client import SmoothClient
+                from app.backend.pipeline.comfy_client import ComfyClient
+                ComfyClient().free()
+                smoother = SmoothClient()
+                smoothed = []
+                for i, clip in enumerate(video_clips):
+                    _abort_if_cancelled(queue_item_id)
+                    _emit(project_id, "interpolating", 0.70 + 0.04 * i / len(video_clips), "running",
+                          f"Smoothing clip {i+1}/{len(video_clips)} to 48 fps on the GPU...")
+                    out = scenes_dir / f"smooth_{i:02d}.mp4"
+                    smoothed.append(str(smoother.smooth(clip, out, 24.0, upscale=want_upscale)))
+                video_clips, gpu_smoothed = smoothed, True
+            except Exception as e:
+                print(f"[QUEUE] GPU smoothing failed, using CPU interpolation instead: {e}")
+
+        # ── v2: background music on the GPU (ACE-Step), MusicGen as fallback ──
+        if want_music:
+            _emit(project_id, "music", 0.75, "running", "Generating background music...")
+            music_out = audio_dir / "background_music.flac"
+            try:
+                from app.backend.pipeline.music_client import MusicClient
+                from app.backend.pipeline.comfy_client import ComfyClient
+                if wan is None or not ComfyClient().is_up():
+                    raise RuntimeError("ComfyUI is not running")
+                ComfyClient().free()
+                music_path = str(MusicClient().generate(music_mood, audio_duration + 1.0, music_out))
+            except Exception as e:
+                print(f"[QUEUE] ACE-Step music failed ({e}); trying MusicGen")
+                try:
+                    from app.backend.pipeline.musicgen_client import generate_music, is_available
+                    if is_available():
+                        music_path = generate_music(music_mood, audio_duration,
+                                                    str(audio_dir / "background_music.wav"))
+                except Exception as e2:
+                    print(f"[QUEUE] Music generation failed (non-fatal): {e2}")
+
+        _emit(project_id, "merging", 0.76, "running", "Merging clips...")
         from app.backend.pipeline.ffmpeg_merger import (
             concatenate_clips, merge_video_audio, merge_with_background_music,
             convert_aspect_ratio, apply_post_processing_chain, add_subtitles,
@@ -375,10 +452,9 @@ def _run_pipeline(queue_item_id: str, project_id: str):
         else:
             source_video = video_clips[0]
 
-        # ── Step 5b: Frame interpolation (optional) ───────────────────
-        want_interp = render_opts.get("interpolation", False)
-        if want_interp:
-            _emit(project_id, "interpolating", 0.76, "running", "Interpolating to 30fps...")
+        # ── Step 5b: CPU frame interpolation fallback ─────────────────
+        if want_interp and not gpu_smoothed:
+            _emit(project_id, "interpolating", 0.77, "running", "Interpolating to 30fps...")
             try:
                 from app.backend.pipeline.rife_client import interpolate_to_fps
                 interp_path = str(scenes_dir / "interpolated.mp4")
@@ -395,8 +471,7 @@ def _run_pipeline(queue_item_id: str, project_id: str):
             merge_video_audio(source_video, audio_path, merged_path, audio_duration)
 
         # ── Step 5d: Upscaling (optional) ─────────────────────────────
-        want_upscale = render_opts.get("upscaling", False)
-        if want_upscale:
+        if want_upscale and not gpu_smoothed:  # already upscaled on the GPU with ESRGAN
             _emit(project_id, "upscaling", 0.82, "running", "Upscaling to 1080p...")
             try:
                 from app.backend.pipeline.esrgan_client import upscale_2x

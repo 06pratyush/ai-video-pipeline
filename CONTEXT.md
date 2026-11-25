@@ -294,3 +294,15 @@
 - **Context Modifications:** None beyond the files listed.
 
 ---
+
+- **Timestamp:** 2026-11-25T13:12:59Z
+- **Trigger Event:** Pull Request (v2 series)
+- **Author/Agent:** Claude Opus 5.5 for 06pratyush
+- **Target Subsystem:** `app/backend/services/{generation_queue,vram_manager}.py`, `installer/catalog.json`, `app/frontend/src/components/ModelBrowser.tsx`
+- **Intent:** Give the desktop app the same v2 improvements as the story renderer, and make every new model installable, licensed and budgeted.
+- **Bugs Discovered:** The queue generated MusicGen music *before* the LLM was unloaded from the GPU, so on an 8 GB card Gemma and the music model competed for VRAM; music now runs after the clips, when ComfyUI owns the GPU. Frame interpolation ran once on the concatenated film (crossing scene cuts, which makes RIFE-style interpolation smear across the cut) - v2 smooths each clip separately before concatenation.
+- **Fixes Applied:** Queue: keyframes before the clip loop (`render_opts.consistency`, defaulting to FLUX schnell when installed; `kontext` draws later scenes from scene 1's keyframe so characters and look carry through), clips animated from their keyframe, cache key includes the consistency mode, each clip smoothed to 48 fps on the GPU (ESRGAN when `upscaling` is on, so the CPU upscale is skipped), ACE-Step music via ComfyUI with MusicGen as fallback, CPU interpolation only as fallback. `image_client.available()` reports whether a mode's files are installed. VRAM table gains flux-schnell, flux-kontext, ace-step-3.5b, rife-esrgan. Catalog v2.0: those four models with exact byte sizes, HF repos or pinned URLs (RIFE with sha256), licences, and `non_commercial: true` on Kontext; the model browser shows the licence and an amber non-commercial badge, and points HF/direct models at `scripts/setup_models.py`.
+- **Verification:** `tsc --noEmit` passes. generation_queue.py parses. The v2 and catalog safety tests pass (every catalog URL is https on an allowed host; every install_path stays in the repo). The queue path is exercised end to end through the API in the smoke-test entry later in this series.
+- **Context Modifications:** None beyond the files listed.
+
+---

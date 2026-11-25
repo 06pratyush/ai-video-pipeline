@@ -274,6 +274,8 @@ export interface CatalogModel {
   ollama_model?: string
   hf_repo?: string
   pip_package?: string
+  license?: string
+  non_commercial?: boolean
 }
 
 export interface ModelCatalog {
