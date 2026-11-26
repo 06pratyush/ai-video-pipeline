@@ -342,3 +342,15 @@
 - **Context Modifications:** No tag is created here: v2.0.0 is tagged by the maintainer after the PR is merged (release.yml builds installers on v* tags).
 
 ---
+
+- **Timestamp:** 2026-11-26T01:54:50Z
+- **Trigger Event:** Pull Request (v2 series)
+- **Author/Agent:** Claude Opus 5.5 for 06pratyush
+- **Target Subsystem:** `.github/workflows/release.yml`, `app/frontend/package.json` (electron-builder config), versions
+- **Intent:** Make a `v*` tag actually produce a GitHub release with installers. Neither v1.0.0 nor v2.0.0 got one.
+- **Bugs Discovered:** The Release run for v2.0.0 failed on all three OSes, and so did v1.0.0's (run 27129426409); the v1.0.0 release has no assets. (1) Windows: `installerHeader` and `installerSidebar` point at `build/*.bmp` files that were never committed. (2) macOS: `mac.icon` and `dmg.icon` point at a missing `build/icon.icns`. (3) Linux: the AppImage built, but electron-builder auto-published on the tag with a GITHUB_TOKEN that had no `contents: write`, so the upload got 403. (4) The NSIS and portable targets shared one artifactName, so the portable .exe would have overwritten the installer. (5) Three matrix jobs each creating the same release would race.
+- **Fixes Applied:** electron-builder now only packages: `--publish never` on build:win, build:linux and build:mac. The missing icon and bitmap references are removed; electron-builder uses its default icon until real ones are added, as build/README.md already describes. The portable build is named `-portable`. The workflow builds on three OSes with read-only permissions and uploads each OS's installers as an artifact. One publish job with `contents: write` then collects them and creates the release (`fail_on_unmatched_files`). macOS builds unsigned with `CSC_IDENTITY_AUTO_DISCOVERY=false`. Version 2.0.1.
+- **Verification:** Ran `npm run build:win` locally on Windows: exit 0, built `AI-Video-Studio-2.0.1-x64.exe` (79.2 MB) and `AI-Video-Studio-2.0.1-x64-portable.exe` (78.9 MB), used the default icon, did not try to publish. package.json parses. The Linux and macOS packaging is proven only by the CI run of the v2.0.1 tag.
+- **Context Modifications:** v2.0.0 stays tagged without a release; v2.0.1 is the first tag expected to ship installers. Add real icons to app/frontend/build/ later and put the icon keys back.
+
+---
