@@ -87,6 +87,14 @@ def load_story(path: Path) -> dict:
         raise SystemExit("consistency must be none, schnell or kontext")
     if not story.get("scenes"):
         raise SystemExit("story has no scenes")
+    # Wan2.2 TI2V-5B is trained at 704x1280. Rendering far below that is what melts a
+    # hand or a label, so a story may ask for the size it is animated at; Wan needs
+    # both sides to be multiples of 32.
+    size = story.get("clip_size")
+    if size is not None:
+        if (not isinstance(size, (list, tuple)) or len(size) != 2
+                or not all(isinstance(v, int) and v >= 32 and v % 32 == 0 for v in size)):
+            raise SystemExit("clip_size must be [width, height], both multiples of 32")
     for i, sc in enumerate(story["scenes"], 1):
         # A scene either says something or holds a deliberate beat of silence.
         if not sc.get("narration", "").strip() and not sc.get("silence"):
@@ -260,7 +268,8 @@ def stage_clips(story, out: Path, only=None, steps=20, **_):
     durs = json.loads((out / "audio" / "durations.json").read_text())
     comfy()
     wan = WanVideoClient(str(ROOT / "app/workflows/wan22_ti2v_5b_gguf.json"))
-    w, h = SIZES[story.get("aspect_ratio", "9:16")]
+    w, h = story.get("clip_size") or SIZES[story.get("aspect_ratio", "9:16")]
+    log(f"  rendering at {w}x{h}, {steps} steps")
     for i, sc in enumerate(story["scenes"], 1):
         dest = out / "clips" / f"{i:02d}.mp4"
         if not wanted(i, dest, only):
@@ -338,19 +347,26 @@ def stage_edit(story, out: Path, **_):
     run(["ffmpeg", "-y", *ins, "-filter_complex", ";".join(graph), "-map", "[aout]",
          "-c:a", "pcm_s16le", str(out / "narration.wav")])
 
-    # 2. One segment per scene: length fitted, scaled, slow push, never frozen.
-    seg_lens = E.segment_lengths(durs, PAD_S, XFADE_S)
+    # 2. One segment per scene: length fitted, scaled, never frozen.
+    # A dissolve is right for a narrated piece that drifts between tableaux and wrong for
+    # a dialogue scene, where it reads as two shots printed on top of each other, so the
+    # story chooses. Clips were rendered long enough for the default, so shortening it
+    # here only leaves a little more material unused.
+    xfade = max(0.02, min(float(story.get("transition_s", XFADE_S)), XFADE_S))
+    push = float(story.get("camera_push", 0.0))
+    seg_lens = E.segment_lengths(durs, PAD_S, xfade)
     segs = []
     for i in range(1, n + 1):
         clip = out / ("smooth" if smooth else "clips") / f"{i:02d}.mp4"
         seg = seg_dir / f"{i:02d}.mp4"
-        vf = E.segment_filter(ffprobe_duration(clip), seg_lens[i - 1], fw, fh, fps)
+        vf = E.segment_filter(ffprobe_duration(clip), seg_lens[i - 1], fw, fh, fps,
+                              push=push)
         run(["ffmpeg", "-y", "-i", str(clip), "-vf", vf, "-an", "-t", f"{seg_lens[i - 1]:.3f}",
              *video_codec_args(nvenc, 17), str(seg)])
         segs.append(seg)
 
     # 3. Dissolves between scenes, each one landing on the next line's first word.
-    graph, label = E.xfade_graph(n, E.xfade_offsets(durs, PAD_S), XFADE_S)
+    graph, label = E.xfade_graph(n, E.xfade_offsets(durs, PAD_S), xfade)
     ins = [a for s in segs for a in ("-i", str(s))]
     run(["ffmpeg", "-y", *ins, "-filter_complex", graph, "-map", label,
          *video_codec_args(nvenc, 17), str(out / "picture.mp4")])

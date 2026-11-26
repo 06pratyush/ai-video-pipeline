@@ -31,6 +31,9 @@
     "uppercase": false,
     "words_per_chunk": 4
   },
+  "clip_size": [704, 1280],
+  "transition_s": 0.12,
+  "camera_push": 0.0,
   "smooth": true,
   "upscale": false,
   "scenes": [

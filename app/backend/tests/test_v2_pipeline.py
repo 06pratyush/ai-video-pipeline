@@ -444,3 +444,29 @@ def test_a_silent_beat_contributes_no_caption_words():
     assert words[3]["start"] >= sum(durs[:2]) + 2 * 0.35
     # And a story that is nothing but silence yields no captions rather than crashing.
     assert E.caption_words([{"silence": 3.0}], [3.0], [[]], 0.35) == []
+
+
+def test_clip_size_override_is_validated():
+    """Wan needs both sides on a 32 grid, and a bad size must fail at load, not hours in."""
+    sys.path.insert(0, str(ROOT / "scripts"))
+    import render_story as R
+    base = json.loads((ROOT / "stories" / "notes_of_panic.json").read_text(encoding="utf-8"))
+    with tempfile.TemporaryDirectory() as d:
+        p = Path(d) / "s.json"
+
+        def written(size):
+            st = dict(base)
+            st.pop("clip_size", None)
+            if size is not None:
+                st["clip_size"] = size
+            p.write_text(json.dumps(st), encoding="utf-8")
+            return p
+
+        assert R.load_story(written([704, 1280]))["clip_size"] == [704, 1280]
+        assert R.load_story(written(None)).get("clip_size") is None
+        for bad in ([700, 1280], [704], "704x1280", [704, 1280, 1], [0, 32]):
+            try:
+                R.load_story(written(bad))
+                raise AssertionError(f"clip_size {bad!r} was accepted")
+            except SystemExit:
+                pass
