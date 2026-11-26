@@ -87,6 +87,12 @@ def load_story(path: Path) -> dict:
         raise SystemExit("consistency must be none, schnell or kontext")
     if not story.get("scenes"):
         raise SystemExit("story has no scenes")
+    for i, sc in enumerate(story["scenes"], 1):
+        # A scene either says something or holds a deliberate beat of silence.
+        if not sc.get("narration", "").strip() and not sc.get("silence"):
+            raise SystemExit(f"scene {i} has no narration: give it one, or a silence in seconds")
+        if not sc.get("prompt", "").strip():
+            raise SystemExit(f"scene {i} has no prompt")
     return story
 
 
@@ -131,26 +137,47 @@ def _free_torch():
 # --------------------------------------------------------------------------- stages
 
 
+def _silence_wav(path: Path, seconds: float, sample_rate: int = 24000) -> None:
+    """A silent line: a deadpan beat still needs a slot on the timeline."""
+    import numpy as np
+    import soundfile as sf
+    path.parent.mkdir(parents=True, exist_ok=True)
+    sf.write(str(path), np.zeros(int(seconds * sample_rate), dtype="float32"), sample_rate)
+
+
 def stage_voice(story, out: Path, only=None, **_):
-    from app.backend.pipeline.kokoro_tts import KokoroTTSClient
+    from app.backend.pipeline.kokoro_tts import VOICES, KokoroTTSClient
     from app.backend.pipeline import whisper_client
     audio = out / "audio"
     dur_file = audio / "durations.json"
     durs = json.loads(dur_file.read_text()) if dur_file.exists() else []
-    voice = story.get("voice", "bm_george")
-    tts, redone = None, False
+    clients: dict[tuple[str, float], KokoroTTSClient] = {}
+    redone = False
     for i, sc in enumerate(story["scenes"], 1):
         wav = audio / f"{i:02d}.wav"
         if not wanted(i, wav, only) and len(durs) >= i:
             continue
-        tts = tts or KokoroTTSClient(voice=voice, speed=float(story.get("voice_speed", 1.0)),
-                                     lang="b" if voice.startswith("b") else "a")
-        _, dur = tts.generate(sc["narration"], str(wav))
+        text = sc.get("narration", "").strip()
+        if not text:
+            dur = min(max(float(sc.get("silence", 1.5)), 0.2), 5.0)
+            _silence_wav(wav, dur)
+            log(f"  voice {i:02d}: {dur:.2f}s silent beat")
+        else:
+            # A two-hander needs two voices: a scene may name its own speaker.
+            voice = sc.get("voice", story.get("voice", "bm_george"))
+            if voice not in VOICES:
+                raise SystemExit(f"scene {i}: unknown voice {voice!r} (have {', '.join(VOICES)})")
+            speed = float(sc.get("voice_speed", story.get("voice_speed", 1.0)))
+            tts = clients.get((voice, speed))
+            if tts is None:
+                tts = clients[(voice, speed)] = KokoroTTSClient(
+                    voice=voice, speed=speed, lang="b" if voice.startswith("b") else "a")
+            _, dur = tts.generate(text, str(wav))
+            log(f"  voice {i:02d}: {dur:.2f}s as {voice} on {tts.device}")
         durs = durs[:i - 1] + [round(dur, 3)] + durs[i:]
         redone = True
-        log(f"  voice {i:02d}: {dur:.2f}s on {tts.device}")
     dur_file.write_text(json.dumps(durs))
-    tts = None
+    clients.clear()
     _free_torch()
     words_file = audio / "words.json"
     if redone or not words_file.exists():
@@ -158,8 +185,12 @@ def stage_voice(story, out: Path, only=None, **_):
             log("  WARNING: faster-whisper is not installed; captions will be timed by word "
                 "length instead of by the voice (pip install faster-whisper)")
         else:
-            heard = [whisper_client.word_timestamps(str(audio / f"{i:02d}.wav"), "small.en")
-                     for i in range(1, len(story["scenes"]) + 1)]
+            heard = []
+            for i, sc in enumerate(story["scenes"], 1):
+                # Nothing is said in a silent beat, so there is nothing to time.
+                heard.append([] if not sc.get("narration", "").strip()
+                             else whisper_client.word_timestamps(str(audio / f"{i:02d}.wav"),
+                                                                 "small.en"))
             words_file.write_text(json.dumps(heard))
             log(f"  words: {sum(len(h) for h in heard)} timed on {whisper_client._device()[0]}")
     log(f"  total narration {sum(durs):.1f}s")
@@ -204,8 +235,11 @@ def stage_keyframes(story, out: Path, only=None, **_):
         seed = int(sc.get("keyframe_seed", 2000 + i))  # change it to re-roll one bad keyframe
         t0 = time.time()
         if use == "kontext":
-            prompt = (f"Place this exact character, keeping the face, hair, beard, body and "
-                      f"clothing identical, into a new scene: {scene_text}. "
+            # Identity, not pose: naming the body as something to keep identical makes
+            # Kontext reproduce the reference sheet's neutral standing pose in every shot.
+            prompt = (f"Keep this character's face, hairstyle, skin tone and clothing exactly "
+                      f"the same, but draw them in a completely new shot, freely re-posed and "
+                      f"re-framed to suit it: {scene_text}. "
                       f"Vertical cinematic frame, {story['style']}")
             client.generate(prompt, dest, w, h, seed=seed,
                             reference=out / "refs" / f"{cast[0]}.png")
@@ -327,8 +361,12 @@ def stage_edit(story, out: Path, **_):
     words = []
     for (start, _), sc, d, h in zip(E.slots(durs, PAD_S), story["scenes"], durs, heard):
         words += E.align_words(sc["narration"], h, start, d)
-    (out / "captions.ass").write_text(E.build_ass(E.chunk_words(words, 3), fw, fh),
-                                      encoding="utf-8")
+    cap = story.get("captions", {})
+    (out / "captions.ass").write_text(
+        E.build_ass(E.chunk_words(words, int(cap.get("words_per_chunk", 3))), fw, fh,
+                    **{k: v for k, v in cap.items()
+                       if k in ("font", "size", "margin_v", "highlight", "uppercase")}),
+        encoding="utf-8")
     (out / "captions_words.json").write_text(json.dumps(words, indent=1))
 
     # 5. Final: grade + captions; voice + ducked music; loudness -14 LUFS.

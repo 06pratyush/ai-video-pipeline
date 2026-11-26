@@ -370,6 +370,52 @@ def test_sample_story_loads():
         assert "{" not in R.fill(sc["prompt"], s), sc["prompt"]
 
 
+def test_dialogue_story_loads_with_two_voices_and_silent_beats():
+    """A two-hander needs a voice per scene; a deadpan beat needs a slot with no words."""
+    sys.path.insert(0, str(ROOT / "scripts"))
+    import render_story as R
+    s = R.load_story(ROOT / "stories" / "notes_of_panic.json")
+    voices = {sc["voice"] for sc in s["scenes"] if sc.get("narration")}
+    assert len(voices) >= 2, voices
+    silent = [sc for sc in s["scenes"] if not sc.get("narration", "").strip()]
+    assert silent and all(0.2 <= sc["silence"] <= 5.0 for sc in silent)
+    for sc in s["scenes"]:
+        assert "{" not in R.fill(sc["prompt"], s), sc["prompt"]
+        for c in sc.get("cast", []):
+            assert c in s["characters"], c
+
+
+def test_story_scene_must_say_something_or_hold_a_silence():
+    sys.path.insert(0, str(ROOT / "scripts"))
+    import render_story as R
+    with tempfile.TemporaryDirectory() as d:
+        bad = Path(d) / "bad.json"
+        bad.write_text(json.dumps({"scenes": [{"prompt": "a shot"}]}))
+        try:
+            R.load_story(bad)
+            raise AssertionError("a scene with neither narration nor silence was accepted")
+        except SystemExit:
+            pass
+        bad.write_text(json.dumps({"scenes": [{"narration": "hello", "prompt": ""}]}))
+        try:
+            R.load_story(bad)
+            raise AssertionError("a scene with no prompt was accepted")
+        except SystemExit:
+            pass
+
+
+def test_captions_can_keep_sentence_case():
+    words = [{"word": "Bright", "start": 0.0, "end": 0.4},
+             {"word": "fruit.", "start": 0.4, "end": 0.9}]
+    chunks = E.chunk_words(words, 3)
+    assert "BRIGHT" in E.build_ass(chunks, 1080, 1920)
+    sentence = E.build_ass(chunks, 1080, 1920, uppercase=False, margin_v=1360)
+    # The highlight colour tag sits between the words, so check each word on its own.
+    assert "Bright" in sentence and "fruit." in sentence
+    assert "BRIGHT" not in sentence and "FRUIT" not in sentence
+    assert ",60,60,1360,1" in sentence  # the style line carries the story's caption height
+
+
 if __name__ == "__main__":
     tests = [(n, f) for n, f in sorted(globals().items()) if n.startswith("test_") and callable(f)]
     failed = []

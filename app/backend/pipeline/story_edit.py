@@ -127,7 +127,7 @@ def ass_time(t: float) -> str:
 
 def build_ass(chunks: list[list[dict]], width: int, height: int,
               font: str = "Arial Black", size: int = 72, margin_v: int = 330,
-              highlight: str = "&H0000D7FF&") -> str:
+              highlight: str = "&H0000D7FF&", uppercase: bool = True) -> str:
     """One Dialogue per spoken word: the whole chunk on screen, the active word highlighted.
 
     Colours are ASS &HBBGGRR&: white text, black outline, highlight defaults to amber.
@@ -150,7 +150,7 @@ def build_ass(chunks: list[list[dict]], width: int, height: int,
             end = max(end, w["start"] + 0.06)
             parts = []
             for m, x in enumerate(chunk):
-                t = ass_escape(x["word"].upper())
+                t = ass_escape(x["word"].upper() if uppercase else x["word"])
                 parts.append(f"{{\\c{highlight}}}{t}{{\\c&H00FFFFFF&}}" if m == k else t)
             lines.append(f"Dialogue: 0,{ass_time(w['start'])},{ass_time(end)},Cap,,0,0,0,,"
                          + " ".join(parts))
