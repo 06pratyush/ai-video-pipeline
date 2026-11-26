@@ -5,8 +5,12 @@ on:
     tags:
       - 'v*'
 
+# Builds only read the repository; the single publish job below is the one that writes the release.
+permissions:
+  contents: read
+
 jobs:
-  release:
+  build:
     name: Build for ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
@@ -38,26 +42,25 @@ jobs:
         working-directory: app/frontend
         run: npm run typecheck
 
+      # The build scripts pass --publish never: electron-builder only packages, and the
+      # publish job uploads everything once all three platforms have built.
       - name: Build (Windows)
         if: matrix.os == 'windows-latest'
         working-directory: app/frontend
         run: npm run build:win
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build (Linux)
         if: matrix.os == 'ubuntu-latest'
         working-directory: app/frontend
         run: npm run build:linux
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build (macOS)
         if: matrix.os == 'macos-latest'
         working-directory: app/frontend
         run: npm run build:mac
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Unsigned until certificates are configured; stops electron-builder hunting for one.
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
           # Code signing (uncomment when certs are configured)
           # CSC_LINK: ${{ secrets.MAC_CERT_BASE64 }}
           # CSC_KEY_PASSWORD: ${{ secrets.MAC_CERT_PASSWORD }}
@@ -65,17 +68,40 @@ jobs:
           # APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_NOTARIZE_PASSWORD }}
           # APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
 
-      - name: Upload installers to release
-        uses: softprops/action-gh-release@v2
+      - name: Keep the installers for the publish job
+        uses: actions/upload-artifact@v4
         with:
-          files: |
+          name: installers-${{ matrix.os }}
+          if-no-files-found: error
+          path: |
             app/frontend/release/*.exe
             app/frontend/release/*.AppImage
             app/frontend/release/*.deb
             app/frontend/release/*.dmg
             app/frontend/release/*.zip
+
+  publish:
+    name: Publish the release
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Collect installers
+        uses: actions/download-artifact@v4
+        with:
+          pattern: installers-*
+          path: installers
+          merge-multiple: true
+
+      - name: List installers
+        run: ls -la installers
+
+      - name: Create the release with the installers
+        uses: softprops/action-gh-release@v2
+        with:
+          files: installers/*
+          fail_on_unmatched_files: true
           draft: false
           prerelease: ${{ contains(github.ref, '-beta') || contains(github.ref, '-rc') }}
           generate_release_notes: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
