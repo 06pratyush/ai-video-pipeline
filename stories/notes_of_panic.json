@@ -19,7 +19,7 @@
       "seed": 67
     },
     "rhone": {
-      "description": "the Cotes du Rhone bottle, a plain slender wine bottle with a matte cream paper label in small understated serif type, no gold foil and no crest, quiet and artisanal",
+      "description": "the Cotes du Rhone bottle, a slender dark green glass bottle of red wine with a matte cream paper label in small understated serif type, no gold foil and no crest, quiet and artisanal",
       "seed": 71
     }
   },
@@ -55,10 +55,11 @@
       "voice": "af_heart",
       "voice_speed": 0.95,
       "prompt": "medium close-up of {maya}, she slides the phone into her coat pocket, rolls her shoulders back, lifts her chin and puts on an overly confident expression, warm amber light, shallow depth of field, slow push-in",
-      "keyframe_seed": 4003,
+      "keyframe_seed": 5003,
       "cast": [
         "maya"
-      ]
+      ],
+      "keyframe": "tight chest-up close-up portrait of {maya}, her face filling most of the vertical frame, she slides her phone into her coat pocket and lifts her chin with an overly confident expression, towering wine shelves softly blurred behind her, warm amber light"
     },
     {
       "silence": 3.5,
@@ -80,8 +81,8 @@
     {
       "silence": 2.4,
       "prompt": "extreme close-up as {bordeaux} rotates slightly in careful fingers to reveal a tiny white price sticker on its base, a sudden vertigo dolly-zoom warps the shelves far behind it, deadpan and sharp",
-      "keyframe": "extreme close-up of the underside of a heavy dark green wine bottle tipped toward the camera in a woman's fingers, a small white rectangular price sticker stuck to the glass with the price \"$165.00\" printed on it in clear black text, the warm amber wine shop blurred and stretched far behind, shallow depth of field",
-      "keyframe_seed": 4106,
+      "keyframe": "extreme close-up of the flat round base of a heavy dark green wine bottle tipped toward the camera in a woman's fingers, a small white rectangular price sticker stuck on the glass printed with the price \"$165.00\", one hundred and sixty five dollars, large crisp black numerals on the sticker, the warm amber wine shop blurred far behind",
+      "keyframe_seed": 7704,
       "cast": []
     },
     {
@@ -103,8 +104,8 @@
       "narration": "Oh! Hi. No, I was just stretching.",
       "voice": "af_heart",
       "prompt": "{maya} jolts and nearly tips backward out of an awkward squat, then scrambles upright smoothing her sweater, mortified, {arthur} standing calmly in the foreground holding a wooden crate, slight high angle medium wide shot",
-      "keyframe": "a warm wine shop aisle, {maya} caught halfway up from an awkward squat beside the low shelves, startled and embarrassed, a grey-bearded man in an oatmeal linen apron holding a wooden crate standing calmly in the foreground, amber light, slight high angle",
-      "keyframe_seed": 4009,
+      "keyframe": "{maya} caught halfway up out of an awkward crouch beside a cluttered knee-level wine shelf, one hand on the shelf, looking up startled and embarrassed, {arthur} standing close in the foreground holding a wooden crate of wine bottles against his hip, warm amber wine shop, shot from a slightly high angle looking down at her",
+      "keyframe_seed": 5009,
       "cast": [
         "maya",
         "arthur"
@@ -123,10 +124,11 @@
       "narration": "Dinner tonight. Meeting my boyfriend's parents. His mom says terroir in conversation.",
       "voice": "af_heart",
       "prompt": "slightly off-centre medium close-up of {maya} gesturing nervously as she explains, her eyes darting, her sleeve rustling, tight framing, warm amber light, shallow depth of field",
-      "keyframe_seed": 4011,
+      "keyframe_seed": 5011,
       "cast": [
         "maya"
-      ]
+      ],
+      "keyframe": "tight off-centre close-up of {maya} from the shoulders up, placed to the left of the vertical frame, mid-sentence and gesturing nervously with one hand near her face, eyes darting sideways, warm amber wine shelves blurred behind, shallow depth of field"
     },
     {
       "narration": "Say no more. High-stakes corkage. What are we pairing it with?",
@@ -161,19 +163,21 @@
       "narration": "You did. Though in this business we call it minerality.",
       "voice": "bm_george",
       "prompt": "close-up of {arthur} answering completely deadpan with a gentle twinkle in his eye, only the corner of his mouth moving, warm amber light, shallow depth of field",
-      "keyframe_seed": 4015,
+      "keyframe_seed": 5015,
       "cast": [
         "arthur"
-      ]
+      ],
+      "keyframe": "extreme close-up of {arthur}'s face filling the vertical frame, answering completely deadpan with one eyebrow barely lifted and a gentle twinkle in his eye, warm amber light raking across his beard, background entirely out of focus"
     },
     {
       "narration": "Look, I don't know what I'm doing. I don't want to look like an idiot.",
       "voice": "af_heart",
       "prompt": "centred eye-level medium close-up of {maya} exhaling deeply, her rigid posture melting and her shoulders visibly dropping as she admits the truth, the act dissolving, balanced framing, softer warmer light",
-      "keyframe_seed": 4016,
+      "keyframe_seed": 5016,
       "cast": [
         "maya"
-      ]
+      ],
+      "keyframe": "centred close-up of {maya} from the shoulders up, her face filling the frame, exhaling and visibly letting go, shoulders dropping and expression softening into honesty, warm amber light, background melted into creamy bokeh"
     },
     {
       "narration": "Honesty pairs well with everything. Follow me.",
@@ -189,18 +193,19 @@
       "narration": "A Cotes du Rhone from a tiny family vineyard. Twenty-two dollars.",
       "voice": "bm_george",
       "prompt": "close-up insert as {arthur} slides {rhone} out of a modest wooden corner rack and passes it across, two hands turning the bottle over, the matte cream paper label catching the warm light",
-      "keyframe": "close-up of two pairs of hands passing {rhone} in the warm corner of a wine shop, matte cream paper label with small understated serif text, no gold foil, a modest wooden rack behind, amber light, shallow depth of field",
-      "keyframe_seed": 4018,
+      "keyframe": "close-up of two pairs of hands passing a bottle of red wine in the warm corner of a wine shop, very dark red wine visible through dark green glass, a matte cream paper label with small understated serif text reading \"Cotes du Rhone\", no gold foil, a modest wooden rack behind, amber light, shallow depth of field",
+      "keyframe_seed": 6018,
       "cast": []
     },
     {
       "narration": "Will they think it's cheap?",
       "voice": "af_heart",
       "prompt": "medium two-shot with {rhone} held up in the foreground, {maya} looking up with a small worried frown, warm amber light, shallow depth of field",
-      "keyframe_seed": 4019,
+      "keyframe_seed": 5019,
       "cast": [
         "maya"
-      ]
+      ],
+      "keyframe": "close-up of {maya}'s face in the upper half of the vertical frame looking worried, brow furrowed and mouth small, holding {rhone} up near her chin in the lower half of the frame, warm amber light, shallow depth of field"
     },
     {
       "narration": "Not if you don't leave the receipt taped to it.",
@@ -215,8 +220,8 @@
       "narration": "It's peppery, smooth, and nobody knows the producer yet.",
       "voice": "bm_george",
       "prompt": "medium two-shot with {rhone} standing in the foreground, soft glowing dark berry orbs and swirling cracked peppercorn motes orbit slowly around the bottle in the warm golden air and then fade away, {arthur} pitching it calmly behind",
-      "keyframe": "{rhone} standing in warm golden light in the foreground of a wine shop, soft glowing dark purple berry orbs and swirling specks of cracked black pepper orbiting around the bottle, a man in a linen apron blurred behind it, creamy bokeh",
-      "keyframe_seed": 4021,
+      "keyframe": "a bottle of red wine standing in warm golden light in the foreground of a wine shop, very dark red wine in dark green glass with a matte cream paper label, soft glowing dark purple berry orbs and swirling specks of cracked black pepper orbiting around the bottle, a man in a linen apron blurred behind it, creamy bokeh",
+      "keyframe_seed": 6021,
       "cast": []
     },
     {
@@ -234,36 +239,40 @@
       "voice": "af_heart",
       "voice_speed": 0.95,
       "prompt": "close-up of {maya} quietly mouthing the words back to herself, eyes down on {rhone} in her hands, locking them into memory, then a small determined nod, warm amber light",
-      "keyframe_seed": 4023,
+      "keyframe_seed": 5023,
       "cast": [
         "maya"
-      ]
+      ],
+      "keyframe": "very tight close-up of the lower half of {maya}'s face, her lips parted silently mouthing words to herself, eyes cast down, {rhone} held in her hands at the bottom edge of the frame, warm intimate amber light, everything else out of focus"
     },
     {
       "narration": "And if his dad asks about the tannins?",
       "voice": "bm_george",
       "prompt": "close-up of {arthur} testing her with one eyebrow raised and a small amused smile, warm amber light, shallow depth of field",
-      "keyframe_seed": 4024,
+      "keyframe_seed": 5024,
       "cast": [
         "arthur"
-      ]
+      ],
+      "keyframe": "extreme close-up of {arthur}'s face filling the vertical frame, testing her with one eyebrow raised high and a small amused smile pulling at his beard, warm amber light, background completely defocused"
     },
     {
       "narration": "I change the subject to his watch.",
       "voice": "af_heart",
       "prompt": "close-up of {maya} delivering the line completely deadpan straight down the lens, utterly calm, one tiny confident blink, warm amber light",
-      "keyframe_seed": 4025,
+      "keyframe_seed": 5025,
       "cast": [
         "maya"
-      ]
+      ],
+      "keyframe": "extreme close-up of {maya}'s face filling the whole vertical frame, staring straight down the lens completely deadpan and calm, not smiling at all, warm amber light, background entirely out of focus"
     },
     {
       "narration": "Thank you. You might have just saved my relationship.",
       "voice": "af_heart",
       "prompt": "medium shot across a clean wood-topped counter, {arthur} slides {rhone} into a sleek matte kraft paper wine bag and hands it over, {maya} taps her card on the reader and beams, warm amber light",
-      "keyframe": "a warm wine shop checkout counter, a grey-bearded man in a linen apron handing a sleek matte kraft paper wine bag across the clean wood counter to {maya}, who is smiling and tapping a card on a small reader, amber light, shelves of bottles behind",
-      "keyframe_seed": 4026,
+      "keyframe": "{arthur} behind a clean wood-topped shop counter sliding {rhone} into a sleek matte kraft paper wine bag and holding it out across the counter, {maya} on the near side reaching to take it and beaming, warm amber light, shelves of wine behind him, medium shot across the counter",
+      "keyframe_seed": 5026,
       "cast": [
+        "arthur",
         "maya",
         "rhone"
       ]
