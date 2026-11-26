@@ -111,6 +111,19 @@ def chunk_words(words: list[dict], size: int = 3) -> list[list[dict]]:
     return out
 
 
+def caption_words(scenes: list[dict], durations: list[float], heard: list[list[dict]],
+                  pad: float) -> list[dict]:
+    """Every scene's spoken words placed on one timeline.
+
+    A scene holding a deliberate beat of silence has no narration at all and so
+    contributes no words: it still owns its slot, the captions just go quiet.
+    """
+    words: list[dict] = []
+    for (start, _), sc, d, h in zip(slots(durations, pad), scenes, durations, heard):
+        words += align_words(sc.get("narration", ""), h, start, d)
+    return words
+
+
 # --------------------------------------------------------------------------- captions
 
 

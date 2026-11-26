@@ -428,3 +428,19 @@ if __name__ == "__main__":
             print(f"  FAIL  {name}: {type(e).__name__}: {e}")
     print(f"\n{len(tests) - len(failed)} passed, {len(failed)} failed")
     raise SystemExit(1 if failed else 0)
+
+
+def test_a_silent_beat_contributes_no_caption_words():
+    # The bug this pins: a silent scene carries no "narration" key at all, and the
+    # edit stage used to index it directly and die after three hours of rendering.
+    scenes = [{"narration": "Say no more."}, {"silence": 2.4, "prompt": "a bottle"},
+              {"narration": "Notes of wet pavement."}]
+    durs = [1.2, 2.4, 1.8]
+    heard = [[{"word": "Say", "start": 0.0, "end": 0.4}], [],
+             [{"word": "Notes", "start": 0.0, "end": 0.5}]]
+    words = E.caption_words(scenes, durs, heard, 0.35)
+    assert [w["word"] for w in words] == ["Say", "no", "more.", "Notes", "of", "wet", "pavement."]
+    # The silent beat still owns its slot, so the next line starts after it.
+    assert words[3]["start"] >= sum(durs[:2]) + 2 * 0.35
+    # And a story that is nothing but silence yields no captions rather than crashing.
+    assert E.caption_words([{"silence": 3.0}], [3.0], [[]], 0.35) == []

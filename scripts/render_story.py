@@ -358,9 +358,7 @@ def stage_edit(story, out: Path, **_):
     # 4. Captions: the script's words on whisper's timings, the active word highlighted.
     words_file = out / "audio" / "words.json"
     heard = json.loads(words_file.read_text()) if words_file.exists() else [[] for _ in durs]
-    words = []
-    for (start, _), sc, d, h in zip(E.slots(durs, PAD_S), story["scenes"], durs, heard):
-        words += E.align_words(sc["narration"], h, start, d)
+    words = E.caption_words(story["scenes"], durs, heard, PAD_S)
     cap = story.get("captions", {})
     (out / "captions.ass").write_text(
         E.build_ass(E.chunk_words(words, int(cap.get("words_per_chunk", 3))), fw, fh,
