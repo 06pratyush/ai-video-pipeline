@@ -370,6 +370,52 @@ def test_sample_story_loads():
         assert "{" not in R.fill(sc["prompt"], s), sc["prompt"]
 
 
+def test_dialogue_story_loads_with_two_voices_and_silent_beats():
+    """A two-hander needs a voice per scene; a deadpan beat needs a slot with no words."""
+    sys.path.insert(0, str(ROOT / "scripts"))
+    import render_story as R
+    s = R.load_story(ROOT / "stories" / "notes_of_panic.json")
+    voices = {sc["voice"] for sc in s["scenes"] if sc.get("narration")}
+    assert len(voices) >= 2, voices
+    silent = [sc for sc in s["scenes"] if not sc.get("narration", "").strip()]
+    assert silent and all(0.2 <= sc["silence"] <= 5.0 for sc in silent)
+    for sc in s["scenes"]:
+        assert "{" not in R.fill(sc["prompt"], s), sc["prompt"]
+        for c in sc.get("cast", []):
+            assert c in s["characters"], c
+
+
+def test_story_scene_must_say_something_or_hold_a_silence():
+    sys.path.insert(0, str(ROOT / "scripts"))
+    import render_story as R
+    with tempfile.TemporaryDirectory() as d:
+        bad = Path(d) / "bad.json"
+        bad.write_text(json.dumps({"scenes": [{"prompt": "a shot"}]}))
+        try:
+            R.load_story(bad)
+            raise AssertionError("a scene with neither narration nor silence was accepted")
+        except SystemExit:
+            pass
+        bad.write_text(json.dumps({"scenes": [{"narration": "hello", "prompt": ""}]}))
+        try:
+            R.load_story(bad)
+            raise AssertionError("a scene with no prompt was accepted")
+        except SystemExit:
+            pass
+
+
+def test_captions_can_keep_sentence_case():
+    words = [{"word": "Bright", "start": 0.0, "end": 0.4},
+             {"word": "fruit.", "start": 0.4, "end": 0.9}]
+    chunks = E.chunk_words(words, 3)
+    assert "BRIGHT" in E.build_ass(chunks, 1080, 1920)
+    sentence = E.build_ass(chunks, 1080, 1920, uppercase=False, margin_v=1360)
+    # The highlight colour tag sits between the words, so check each word on its own.
+    assert "Bright" in sentence and "fruit." in sentence
+    assert "BRIGHT" not in sentence and "FRUIT" not in sentence
+    assert ",60,60,1360,1" in sentence  # the style line carries the story's caption height
+
+
 if __name__ == "__main__":
     tests = [(n, f) for n, f in sorted(globals().items()) if n.startswith("test_") and callable(f)]
     failed = []
@@ -382,3 +428,45 @@ if __name__ == "__main__":
             print(f"  FAIL  {name}: {type(e).__name__}: {e}")
     print(f"\n{len(tests) - len(failed)} passed, {len(failed)} failed")
     raise SystemExit(1 if failed else 0)
+
+
+def test_a_silent_beat_contributes_no_caption_words():
+    # The bug this pins: a silent scene carries no "narration" key at all, and the
+    # edit stage used to index it directly and die after three hours of rendering.
+    scenes = [{"narration": "Say no more."}, {"silence": 2.4, "prompt": "a bottle"},
+              {"narration": "Notes of wet pavement."}]
+    durs = [1.2, 2.4, 1.8]
+    heard = [[{"word": "Say", "start": 0.0, "end": 0.4}], [],
+             [{"word": "Notes", "start": 0.0, "end": 0.5}]]
+    words = E.caption_words(scenes, durs, heard, 0.35)
+    assert [w["word"] for w in words] == ["Say", "no", "more.", "Notes", "of", "wet", "pavement."]
+    # The silent beat still owns its slot, so the next line starts after it.
+    assert words[3]["start"] >= sum(durs[:2]) + 2 * 0.35
+    # And a story that is nothing but silence yields no captions rather than crashing.
+    assert E.caption_words([{"silence": 3.0}], [3.0], [[]], 0.35) == []
+
+
+def test_clip_size_override_is_validated():
+    """Wan needs both sides on a 32 grid, and a bad size must fail at load, not hours in."""
+    sys.path.insert(0, str(ROOT / "scripts"))
+    import render_story as R
+    base = json.loads((ROOT / "stories" / "notes_of_panic.json").read_text(encoding="utf-8"))
+    with tempfile.TemporaryDirectory() as d:
+        p = Path(d) / "s.json"
+
+        def written(size):
+            st = dict(base)
+            st.pop("clip_size", None)
+            if size is not None:
+                st["clip_size"] = size
+            p.write_text(json.dumps(st), encoding="utf-8")
+            return p
+
+        assert R.load_story(written([704, 1280]))["clip_size"] == [704, 1280]
+        assert R.load_story(written(None)).get("clip_size") is None
+        for bad in ([700, 1280], [704], "704x1280", [704, 1280, 1], [0, 32]):
+            try:
+                R.load_story(written(bad))
+                raise AssertionError(f"clip_size {bad!r} was accepted")
+            except SystemExit:
+                pass

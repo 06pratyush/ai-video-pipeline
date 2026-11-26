@@ -87,6 +87,20 @@ def load_story(path: Path) -> dict:
         raise SystemExit("consistency must be none, schnell or kontext")
     if not story.get("scenes"):
         raise SystemExit("story has no scenes")
+    # Wan2.2 TI2V-5B is trained at 704x1280. Rendering far below that is what melts a
+    # hand or a label, so a story may ask for the size it is animated at; Wan needs
+    # both sides to be multiples of 32.
+    size = story.get("clip_size")
+    if size is not None:
+        if (not isinstance(size, (list, tuple)) or len(size) != 2
+                or not all(isinstance(v, int) and v >= 32 and v % 32 == 0 for v in size)):
+            raise SystemExit("clip_size must be [width, height], both multiples of 32")
+    for i, sc in enumerate(story["scenes"], 1):
+        # A scene either says something or holds a deliberate beat of silence.
+        if not sc.get("narration", "").strip() and not sc.get("silence"):
+            raise SystemExit(f"scene {i} has no narration: give it one, or a silence in seconds")
+        if not sc.get("prompt", "").strip():
+            raise SystemExit(f"scene {i} has no prompt")
     return story
 
 
@@ -131,26 +145,47 @@ def _free_torch():
 # --------------------------------------------------------------------------- stages
 
 
+def _silence_wav(path: Path, seconds: float, sample_rate: int = 24000) -> None:
+    """A silent line: a deadpan beat still needs a slot on the timeline."""
+    import numpy as np
+    import soundfile as sf
+    path.parent.mkdir(parents=True, exist_ok=True)
+    sf.write(str(path), np.zeros(int(seconds * sample_rate), dtype="float32"), sample_rate)
+
+
 def stage_voice(story, out: Path, only=None, **_):
-    from app.backend.pipeline.kokoro_tts import KokoroTTSClient
+    from app.backend.pipeline.kokoro_tts import VOICES, KokoroTTSClient
     from app.backend.pipeline import whisper_client
     audio = out / "audio"
     dur_file = audio / "durations.json"
     durs = json.loads(dur_file.read_text()) if dur_file.exists() else []
-    voice = story.get("voice", "bm_george")
-    tts, redone = None, False
+    clients: dict[tuple[str, float], KokoroTTSClient] = {}
+    redone = False
     for i, sc in enumerate(story["scenes"], 1):
         wav = audio / f"{i:02d}.wav"
         if not wanted(i, wav, only) and len(durs) >= i:
             continue
-        tts = tts or KokoroTTSClient(voice=voice, speed=float(story.get("voice_speed", 1.0)),
-                                     lang="b" if voice.startswith("b") else "a")
-        _, dur = tts.generate(sc["narration"], str(wav))
+        text = sc.get("narration", "").strip()
+        if not text:
+            dur = min(max(float(sc.get("silence", 1.5)), 0.2), 5.0)
+            _silence_wav(wav, dur)
+            log(f"  voice {i:02d}: {dur:.2f}s silent beat")
+        else:
+            # A two-hander needs two voices: a scene may name its own speaker.
+            voice = sc.get("voice", story.get("voice", "bm_george"))
+            if voice not in VOICES:
+                raise SystemExit(f"scene {i}: unknown voice {voice!r} (have {', '.join(VOICES)})")
+            speed = float(sc.get("voice_speed", story.get("voice_speed", 1.0)))
+            tts = clients.get((voice, speed))
+            if tts is None:
+                tts = clients[(voice, speed)] = KokoroTTSClient(
+                    voice=voice, speed=speed, lang="b" if voice.startswith("b") else "a")
+            _, dur = tts.generate(text, str(wav))
+            log(f"  voice {i:02d}: {dur:.2f}s as {voice} on {tts.device}")
         durs = durs[:i - 1] + [round(dur, 3)] + durs[i:]
         redone = True
-        log(f"  voice {i:02d}: {dur:.2f}s on {tts.device}")
     dur_file.write_text(json.dumps(durs))
-    tts = None
+    clients.clear()
     _free_torch()
     words_file = audio / "words.json"
     if redone or not words_file.exists():
@@ -158,8 +193,12 @@ def stage_voice(story, out: Path, only=None, **_):
             log("  WARNING: faster-whisper is not installed; captions will be timed by word "
                 "length instead of by the voice (pip install faster-whisper)")
         else:
-            heard = [whisper_client.word_timestamps(str(audio / f"{i:02d}.wav"), "small.en")
-                     for i in range(1, len(story["scenes"]) + 1)]
+            heard = []
+            for i, sc in enumerate(story["scenes"], 1):
+                # Nothing is said in a silent beat, so there is nothing to time.
+                heard.append([] if not sc.get("narration", "").strip()
+                             else whisper_client.word_timestamps(str(audio / f"{i:02d}.wav"),
+                                                                 "small.en"))
             words_file.write_text(json.dumps(heard))
             log(f"  words: {sum(len(h) for h in heard)} timed on {whisper_client._device()[0]}")
     log(f"  total narration {sum(durs):.1f}s")
@@ -204,8 +243,11 @@ def stage_keyframes(story, out: Path, only=None, **_):
         seed = int(sc.get("keyframe_seed", 2000 + i))  # change it to re-roll one bad keyframe
         t0 = time.time()
         if use == "kontext":
-            prompt = (f"Place this exact character, keeping the face, hair, beard, body and "
-                      f"clothing identical, into a new scene: {scene_text}. "
+            # Identity, not pose: naming the body as something to keep identical makes
+            # Kontext reproduce the reference sheet's neutral standing pose in every shot.
+            prompt = (f"Keep this character's face, hairstyle, skin tone and clothing exactly "
+                      f"the same, but draw them in a completely new shot, freely re-posed and "
+                      f"re-framed to suit it: {scene_text}. "
                       f"Vertical cinematic frame, {story['style']}")
             client.generate(prompt, dest, w, h, seed=seed,
                             reference=out / "refs" / f"{cast[0]}.png")
@@ -226,7 +268,8 @@ def stage_clips(story, out: Path, only=None, steps=20, **_):
     durs = json.loads((out / "audio" / "durations.json").read_text())
     comfy()
     wan = WanVideoClient(str(ROOT / "app/workflows/wan22_ti2v_5b_gguf.json"))
-    w, h = SIZES[story.get("aspect_ratio", "9:16")]
+    w, h = story.get("clip_size") or SIZES[story.get("aspect_ratio", "9:16")]
+    log(f"  rendering at {w}x{h}, {steps} steps")
     for i, sc in enumerate(story["scenes"], 1):
         dest = out / "clips" / f"{i:02d}.mp4"
         if not wanted(i, dest, only):
@@ -304,19 +347,26 @@ def stage_edit(story, out: Path, **_):
     run(["ffmpeg", "-y", *ins, "-filter_complex", ";".join(graph), "-map", "[aout]",
          "-c:a", "pcm_s16le", str(out / "narration.wav")])
 
-    # 2. One segment per scene: length fitted, scaled, slow push, never frozen.
-    seg_lens = E.segment_lengths(durs, PAD_S, XFADE_S)
+    # 2. One segment per scene: length fitted, scaled, never frozen.
+    # A dissolve is right for a narrated piece that drifts between tableaux and wrong for
+    # a dialogue scene, where it reads as two shots printed on top of each other, so the
+    # story chooses. Clips were rendered long enough for the default, so shortening it
+    # here only leaves a little more material unused.
+    xfade = max(0.02, min(float(story.get("transition_s", XFADE_S)), XFADE_S))
+    push = float(story.get("camera_push", 0.0))
+    seg_lens = E.segment_lengths(durs, PAD_S, xfade)
     segs = []
     for i in range(1, n + 1):
         clip = out / ("smooth" if smooth else "clips") / f"{i:02d}.mp4"
         seg = seg_dir / f"{i:02d}.mp4"
-        vf = E.segment_filter(ffprobe_duration(clip), seg_lens[i - 1], fw, fh, fps)
+        vf = E.segment_filter(ffprobe_duration(clip), seg_lens[i - 1], fw, fh, fps,
+                              push=push)
         run(["ffmpeg", "-y", "-i", str(clip), "-vf", vf, "-an", "-t", f"{seg_lens[i - 1]:.3f}",
              *video_codec_args(nvenc, 17), str(seg)])
         segs.append(seg)
 
     # 3. Dissolves between scenes, each one landing on the next line's first word.
-    graph, label = E.xfade_graph(n, E.xfade_offsets(durs, PAD_S), XFADE_S)
+    graph, label = E.xfade_graph(n, E.xfade_offsets(durs, PAD_S), xfade)
     ins = [a for s in segs for a in ("-i", str(s))]
     run(["ffmpeg", "-y", *ins, "-filter_complex", graph, "-map", label,
          *video_codec_args(nvenc, 17), str(out / "picture.mp4")])
@@ -324,11 +374,13 @@ def stage_edit(story, out: Path, **_):
     # 4. Captions: the script's words on whisper's timings, the active word highlighted.
     words_file = out / "audio" / "words.json"
     heard = json.loads(words_file.read_text()) if words_file.exists() else [[] for _ in durs]
-    words = []
-    for (start, _), sc, d, h in zip(E.slots(durs, PAD_S), story["scenes"], durs, heard):
-        words += E.align_words(sc["narration"], h, start, d)
-    (out / "captions.ass").write_text(E.build_ass(E.chunk_words(words, 3), fw, fh),
-                                      encoding="utf-8")
+    words = E.caption_words(story["scenes"], durs, heard, PAD_S)
+    cap = story.get("captions", {})
+    (out / "captions.ass").write_text(
+        E.build_ass(E.chunk_words(words, int(cap.get("words_per_chunk", 3))), fw, fh,
+                    **{k: v for k, v in cap.items()
+                       if k in ("font", "size", "margin_v", "highlight", "uppercase")}),
+        encoding="utf-8")
     (out / "captions_words.json").write_text(json.dumps(words, indent=1))
 
     # 5. Final: grade + captions; voice + ducked music; loudness -14 LUFS.

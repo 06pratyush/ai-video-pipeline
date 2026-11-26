@@ -111,6 +111,19 @@ def chunk_words(words: list[dict], size: int = 3) -> list[list[dict]]:
     return out
 
 
+def caption_words(scenes: list[dict], durations: list[float], heard: list[list[dict]],
+                  pad: float) -> list[dict]:
+    """Every scene's spoken words placed on one timeline.
+
+    A scene holding a deliberate beat of silence has no narration at all and so
+    contributes no words: it still owns its slot, the captions just go quiet.
+    """
+    words: list[dict] = []
+    for (start, _), sc, d, h in zip(slots(durations, pad), scenes, durations, heard):
+        words += align_words(sc.get("narration", ""), h, start, d)
+    return words
+
+
 # --------------------------------------------------------------------------- captions
 
 
@@ -127,7 +140,7 @@ def ass_time(t: float) -> str:
 
 def build_ass(chunks: list[list[dict]], width: int, height: int,
               font: str = "Arial Black", size: int = 72, margin_v: int = 330,
-              highlight: str = "&H0000D7FF&") -> str:
+              highlight: str = "&H0000D7FF&", uppercase: bool = True) -> str:
     """One Dialogue per spoken word: the whole chunk on screen, the active word highlighted.
 
     Colours are ASS &HBBGGRR&: white text, black outline, highlight defaults to amber.
@@ -150,7 +163,7 @@ def build_ass(chunks: list[list[dict]], width: int, height: int,
             end = max(end, w["start"] + 0.06)
             parts = []
             for m, x in enumerate(chunk):
-                t = ass_escape(x["word"].upper())
+                t = ass_escape(x["word"].upper() if uppercase else x["word"])
                 parts.append(f"{{\\c{highlight}}}{t}{{\\c&H00FFFFFF&}}" if m == k else t)
             lines.append(f"Dialogue: 0,{ass_time(w['start'])},{ass_time(end)},Cap,,0,0,0,,"
                          + " ".join(parts))
@@ -161,22 +174,36 @@ def build_ass(chunks: list[list[dict]], width: int, height: int,
 
 
 def segment_filter(clip_len: float, seg_len: float, out_w: int, out_h: int, fps: int,
-                   push: float = 0.05, max_slow: float = 1.15) -> str:
-    """Video filter for one scene: fit length, scale to the frame, slow camera push.
+                   push: float = 0.0, max_slow: float = 1.26) -> str:
+    """Video filter for one scene: fit length, scale to the frame, optional camera push.
 
-    The clip is slowed by at most ``max_slow``; any remaining time holds the last frame,
-    and the continuous push keeps even that hold moving, so nothing ever freezes.
+    ``push`` defaults to off. ``scale`` rounds to whole pixels, so a per-frame zoom holds
+    still for several frames and then jumps two pixels: a 5% push over a five-second shot
+    is 27 such jumps, one every tenth frame, which reads as a tick and undoes the 48 fps
+    interpolation it sits on top of. A generated clip already carries its own camera move,
+    so the push buys nothing and costs that. It stays available for genuinely still
+    footage, where the stepping is the lesser of two evils.
+
+    ``max_slow`` is high enough to stretch the longest clip across its slot, so the
+    ``tpad`` hold below is a safety net rather than something a scene relies on.
     """
     slow = max(1.0, min(seg_len / max(clip_len, 0.1), max_slow))
-    z = f"(1+{push:.4f}*t/{seg_len:.3f})"
-    return (
-        f"setpts={slow:.4f}*PTS,fps={fps},"
-        f"scale={out_w}:{out_h}:flags=lanczos:force_original_aspect_ratio=increase,"
-        f"crop={out_w}:{out_h},"
-        f"tpad=stop_mode=clone:stop_duration={seg_len:.3f},trim=duration={seg_len:.3f},"
-        f"scale=w='trunc({out_w}*{z}/2)*2':h='trunc({out_h}*{z}/2)*2':eval=frame:flags=lanczos,"
-        f"crop={out_w}:{out_h},setsar=1,format=yuv420p"
-    )
+    chain = [
+        f"setpts={slow:.4f}*PTS", f"fps={fps}",
+        f"scale={out_w}:{out_h}:flags=lanczos:force_original_aspect_ratio=increase",
+        f"crop={out_w}:{out_h}",
+        f"tpad=stop_mode=clone:stop_duration={seg_len:.3f}",
+        f"trim=duration={seg_len:.3f}",
+    ]
+    if push > 0:
+        # Only build the zoom when there is one. At push 0 the expression is a constant,
+        # but ffmpeg would still resample every frame through lanczos for no change,
+        # softening a frame that was already upscaled from the clip's own resolution.
+        z = f"(1+{push:.4f}*t/{seg_len:.3f})"
+        chain += [f"scale=w='trunc({out_w}*{z}/2)*2':h='trunc({out_h}*{z}/2)*2':"
+                  f"eval=frame:flags=lanczos", f"crop={out_w}:{out_h}"]
+    chain += ["setsar=1", "format=yuv420p"]
+    return ",".join(chain)
 
 
 def xfade_graph(n: int, offsets: list[float], xfade: float) -> tuple[str, str]:

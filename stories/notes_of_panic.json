@@ -1,0 +1,303 @@
+{
+  "title": "Notes of Panic",
+  "aspect_ratio": "9:16",
+  "voice": "af_heart",
+  "voice_speed": 1.0,
+  "style": "Pixar-style 3D animated film, stylized expressive 3D characters, soft global illumination, warm amber cinematic lighting, volumetric golden god-rays, drifting dust motes, deep burgundy and espresso wood and dark bottle-green palette with muted gold, physically accurate glass and liquid shaders, rich detailed fabric and paper textures, shallow depth of field, creamy bokeh, high quality animation",
+  "consistency": "kontext",
+  "characters": {
+    "maya": {
+      "description": "Maya, a woman in her late twenties with warm brown skin, dark wavy shoulder-length hair tucked behind one ear, expressive dark eyes and a nervous friendly face, wearing a freshly ironed light sage knit sweater, dark jeans and an open charcoal wool coat",
+      "seed": 41
+    },
+    "arthur": {
+      "description": "Arthur, a warm man in his fifties with short silver-grey hair, a neatly trimmed grey beard and deep smile crinkles around his eyes, wearing a lived-in oatmeal linen apron over a rolled-sleeve blue chambray button-down shirt",
+      "seed": 53
+    },
+    "bordeaux": {
+      "description": "the expensive Bordeaux bottle, a heavy dark-green glass wine bottle with a dusty shoulder, an ornate embossed gold crest on a cream label, and a tiny white price sticker on the base",
+      "seed": 67
+    },
+    "rhone": {
+      "description": "the Cotes du Rhone bottle, a slender dark green glass bottle of red wine with a matte cream paper label in small understated serif type, no gold foil and no crest, quiet and artisanal",
+      "seed": 71
+    }
+  },
+  "music": "warm French jazz quartet, nylon string acoustic guitar, upright bass, soft brushed snare drums, gentle accordion, relaxed swing, Parisian cafe, cosy and light-hearted, major key, medium slow tempo, instrumental",
+  "music_seed": 7,
+  "captions": {
+    "margin_v": 330,
+    "size": 64,
+    "uppercase": false,
+    "words_per_chunk": 4
+  },
+  "clip_size": [704, 1280],
+  "transition_s": 0.12,
+  "camera_push": 0.0,
+  "smooth": true,
+  "upscale": false,
+  "scenes": [
+    {
+      "silence": 2.8,
+      "prompt": "camera glides down through a backlit top row of dark dusty wine bottles and pulls back, tilting down as {maya} pushes open the shop door and steps inside, her coat still moving, towering mahogany shelves looming over her, amber god-rays and drifting dust motes, slow crane move",
+      "keyframe": "wide low-angle view straight down a very tall narrow wine shop aisle, floor-to-ceiling mahogany shelves packed with hundreds of dark wine bottles towering impossibly high on both sides and converging overhead like a cathedral, {maya} seen from behind, small and dwarfed by the shelves, standing just inside the open doorway at the far end with warm daylight behind her, amber god-rays, drifting dust motes",
+      "keyframe_seed": 4101,
+      "cast": [
+        "maya"
+      ]
+    },
+    {
+      "silence": 2.6,
+      "prompt": "top-down extreme close-up of two hands holding a phone, the bright screen showing a search history list, a thumb presses the side button and the screen locks to black, cool blue screen light on the fingers, tiny push-in",
+      "keyframe": "top-down close-up of a smartphone held in two hands over warm dark floorboards, the screen showing a phone search history page, the first search typed in large clear black text reading \"red wine words that sound smart\", the second reading \"is expensive wine actually better\", clean bright phone interface, cool blue screen glow on the fingers",
+      "keyframe_seed": 4102,
+      "cast": []
+    },
+    {
+      "narration": "Just look confident. Pick something French. Nobody questions the French.",
+      "voice": "af_heart",
+      "voice_speed": 0.95,
+      "prompt": "medium close-up of {maya}, she slides the phone into her coat pocket, rolls her shoulders back, lifts her chin and puts on an overly confident expression, warm amber light, shallow depth of field, slow push-in",
+      "keyframe_seed": 5003,
+      "cast": [
+        "maya"
+      ],
+      "keyframe": "tight chest-up close-up portrait of {maya}, her face filling most of the vertical frame, she slides her phone into her coat pocket and lifts her chin with an overly confident expression, towering wine shelves softly blurred behind her, warm amber light"
+    },
+    {
+      "silence": 3.5,
+      "prompt": "{maya} walks down a narrow aisle under a carved wooden sign reading BORDEAUX, reaches up and lifts {bordeaux} from a high shelf, then tilts it toward a warm pendant light and gives a slow approving nod, camera tracking sideways then settling, dust drifting in the air",
+      "keyframe": "{maya} standing in a narrow mahogany wine aisle beneath a carved wooden sign reading \"BORDEAUX\", holding {bordeaux} up toward a warm hanging Edison pendant light and squinting at it very seriously, towering spotlit shelves of bottles around her, amber light, dust motes, slight low angle",
+      "keyframe_seed": 4004,
+      "cast": [
+        "maya",
+        "bordeaux"
+      ]
+    },
+    {
+      "silence": 2.2,
+      "prompt": "static macro insert of the back label of {bordeaux} held in one hand, the camera holds dead still on a small block of fine print, a pair of serious eyes just visible in soft focus behind the bottle, almost no movement",
+      "keyframe": "extreme macro close-up of the back label of a dark green wine bottle, a small block of fine print headed \"GOVERNMENT WARNING\" clearly readable on cream paper, warm amber light raking across the glass, a woman's dead-serious eyes blurred behind the bottle, shallow depth of field",
+      "keyframe_seed": 4005,
+      "cast": []
+    },
+    {
+      "silence": 2.4,
+      "prompt": "extreme close-up as {bordeaux} rotates slightly in careful fingers to reveal a tiny white price sticker on its base, a sudden vertigo dolly-zoom warps the shelves far behind it, deadpan and sharp",
+      "keyframe": "extreme close-up of the flat round base of a heavy dark green wine bottle tipped toward the camera in a woman's fingers, a small white rectangular price sticker stuck on the glass printed with the price \"$165.00\", one hundred and sixty five dollars, large crisp black numerals on the sticker, the warm amber wine shop blurred far behind",
+      "keyframe_seed": 7704,
+      "cast": []
+    },
+    {
+      "silence": 2.6,
+      "prompt": "tight insert of {maya}'s hands easing {bordeaux} back into a gap on the wooden shelf with millimetre precision, thin glowing red holographic trajectory lines and a faint targeting reticle locked onto the shelf gap, the reticle flashes green as the glass touches down, then she wipes her palms on her jeans",
+      "keyframe": "close-up of two very careful hands lowering a heavy dark green wine bottle into a gap on a mahogany wine shelf, thin glowing red holographic targeting lines and a green reticle overlaid on the shelf gap like a bomb disposal display, warm amber light, drifting dust",
+      "keyframe_seed": 4007,
+      "cast": []
+    },
+    {
+      "narration": "Looking for something bold, or just a good boy?",
+      "voice": "bm_george",
+      "prompt": "low angle close-up insert of a bright cartoon wine label on a knee-level shelf, the painted French bulldog in a red beret pops into soft 3D relief, blinks slowly and slides a judgmental side-eye toward the camera",
+      "keyframe": "low angle close-up of a wine bottle on a cluttered knee-level wooden shelf, its bright cartoonish label showing a French bulldog wearing a red beret, warm amber light, dark bottles out of focus behind it, shallow depth of field",
+      "keyframe_seed": 4008,
+      "cast": []
+    },
+    {
+      "narration": "Oh! Hi. No, I was just stretching.",
+      "voice": "af_heart",
+      "prompt": "{maya} jolts and nearly tips backward out of an awkward squat, then scrambles upright smoothing her sweater, mortified, {arthur} standing calmly in the foreground holding a wooden crate, slight high angle medium wide shot",
+      "keyframe": "{maya} caught halfway up out of an awkward crouch beside a cluttered knee-level wine shelf, one hand on the shelf, looking up startled and embarrassed, {arthur} standing close in the foreground holding a wooden crate of wine bottles against his hip, warm amber wine shop, shot from a slightly high angle looking down at her",
+      "keyframe_seed": 5009,
+      "cast": [
+        "maya",
+        "arthur"
+      ]
+    },
+    {
+      "narration": "A connoisseur of the floor level. What's the occasion?",
+      "voice": "bm_george",
+      "prompt": "over-the-shoulder shot on {arthur} as he sets the wooden crate down on the floorboards and straightens up with a warm suppressed smile, the exaggerated towering shelves behind him settling back to a normal sized room, {maya} blurred in the foreground",
+      "keyframe_seed": 4010,
+      "cast": [
+        "arthur"
+      ]
+    },
+    {
+      "narration": "Dinner tonight. Meeting my boyfriend's parents. His mom says terroir in conversation.",
+      "voice": "af_heart",
+      "prompt": "slightly off-centre medium close-up of {maya} gesturing nervously as she explains, her eyes darting, her sleeve rustling, tight framing, warm amber light, shallow depth of field",
+      "keyframe_seed": 5011,
+      "cast": [
+        "maya"
+      ],
+      "keyframe": "tight off-centre close-up of {maya} from the shoulders up, placed to the left of the vertical frame, mid-sentence and gesturing nervously with one hand near her face, eyes darting sideways, warm amber wine shelves blurred behind, shallow depth of field"
+    },
+    {
+      "narration": "Say no more. High-stakes corkage. What are we pairing it with?",
+      "voice": "bm_george",
+      "prompt": "medium close-up of {arthur} nodding sympathetically and leaning casually against a stack of wooden crates, open relaxed body language, warm amber light",
+      "keyframe_seed": 4012,
+      "cast": [
+        "arthur"
+      ]
+    },
+    {
+      "narration": "Very dry, obviously. Heavy tannins. And notes of wet pavement.",
+      "voice": "af_heart",
+      "prompt": "medium shot of {maya} reciting memorised buzzwords with forced confidence, slow push-in, two sleek polished chrome 3D serif words drifting gracefully through the warm air past her head",
+      "keyframe": "{maya} standing in a warm amber wine shop reciting with forced confidence, two sleek polished chrome 3D serif words reading \"LEGS\" and \"TANNINS\" floating in the air beside her head, dust motes, shallow depth of field",
+      "keyframe_seed": 4013,
+      "cast": [
+        "maya"
+      ]
+    },
+    {
+      "narration": "Did I just say wet pavement?",
+      "voice": "af_heart",
+      "prompt": "a heavy cracked grey concrete 3D slab crashes down through the frame beside {maya} and drops out of sight, dust puffing up off the floorboards, she winces and squeezes one eye shut, medium shot",
+      "keyframe": "{maya} wincing in a warm wine shop as a heavy cracked grey concrete slab with the rough carved words \"WET PAVEMENT\" on it falls through the frame beside her, dust puffing up, amber light, medium shot",
+      "keyframe_seed": 4014,
+      "cast": [
+        "maya"
+      ]
+    },
+    {
+      "narration": "You did. Though in this business we call it minerality.",
+      "voice": "bm_george",
+      "prompt": "close-up of {arthur} answering completely deadpan with a gentle twinkle in his eye, only the corner of his mouth moving, warm amber light, shallow depth of field",
+      "keyframe_seed": 5015,
+      "cast": [
+        "arthur"
+      ],
+      "keyframe": "extreme close-up of {arthur}'s face filling the vertical frame, answering completely deadpan with one eyebrow barely lifted and a gentle twinkle in his eye, warm amber light raking across his beard, background entirely out of focus"
+    },
+    {
+      "narration": "Look, I don't know what I'm doing. I don't want to look like an idiot.",
+      "voice": "af_heart",
+      "prompt": "centred eye-level medium close-up of {maya} exhaling deeply, her rigid posture melting and her shoulders visibly dropping as she admits the truth, the act dissolving, balanced framing, softer warmer light",
+      "keyframe_seed": 5016,
+      "cast": [
+        "maya"
+      ],
+      "keyframe": "centred close-up of {maya} from the shoulders up, her face filling the frame, exhaling and visibly letting go, shoulders dropping and expression softening into honesty, warm amber light, background melted into creamy bokeh"
+    },
+    {
+      "narration": "Honesty pairs well with everything. Follow me.",
+      "voice": "bm_george",
+      "prompt": "medium two-shot at eye level, {arthur} smiles approvingly and gestures with an open hand deeper into the warm open shop floor, {maya} relaxing beside him, both beginning to turn and walk",
+      "keyframe_seed": 4017,
+      "cast": [
+        "arthur",
+        "maya"
+      ]
+    },
+    {
+      "narration": "A Cotes du Rhone from a tiny family vineyard. Twenty-two dollars.",
+      "voice": "bm_george",
+      "prompt": "close-up insert as {arthur} slides {rhone} out of a modest wooden corner rack and passes it across, two hands turning the bottle over, the matte cream paper label catching the warm light",
+      "keyframe": "close-up of two pairs of hands passing a bottle of red wine in the warm corner of a wine shop, very dark red wine visible through dark green glass, a matte cream paper label with small understated serif text reading \"Cotes du Rhone\", no gold foil, a modest wooden rack behind, amber light, shallow depth of field",
+      "keyframe_seed": 6018,
+      "cast": []
+    },
+    {
+      "narration": "Will they think it's cheap?",
+      "voice": "af_heart",
+      "prompt": "medium two-shot with {rhone} held up in the foreground, {maya} looking up with a small worried frown, warm amber light, shallow depth of field",
+      "keyframe_seed": 5019,
+      "cast": [
+        "maya"
+      ],
+      "keyframe": "close-up of {maya}'s face in the upper half of the vertical frame looking worried, brow furrowed and mouth small, holding {rhone} up near her chin in the lower half of the frame, warm amber light, shallow depth of field"
+    },
+    {
+      "narration": "Not if you don't leave the receipt taped to it.",
+      "voice": "bm_george",
+      "prompt": "medium close-up of {arthur} answering with a dry warm smile and a small shrug, {rhone} soft in the foreground, warm amber light",
+      "keyframe_seed": 4020,
+      "cast": [
+        "arthur"
+      ]
+    },
+    {
+      "narration": "It's peppery, smooth, and nobody knows the producer yet.",
+      "voice": "bm_george",
+      "prompt": "medium two-shot with {rhone} standing in the foreground, soft glowing dark berry orbs and swirling cracked peppercorn motes orbit slowly around the bottle in the warm golden air and then fade away, {arthur} pitching it calmly behind",
+      "keyframe": "a bottle of red wine standing in warm golden light in the foreground of a wine shop, very dark red wine in dark green glass with a matte cream paper label, soft glowing dark purple berry orbs and swirling specks of cracked black pepper orbiting around the bottle, a man in a linen apron blurred behind it, creamy bokeh",
+      "keyframe_seed": 6021,
+      "cast": []
+    },
+    {
+      "narration": "Just say: small-batch Rhone blend, bright fruit, should open up nicely.",
+      "voice": "bm_george",
+      "prompt": "tight two-shot as {arthur} leans in conspiratorially toward {maya} to coach her line, lowering his voice, she listens intently, intimate warm light, shallow depth of field",
+      "keyframe_seed": 4022,
+      "cast": [
+        "arthur",
+        "maya"
+      ]
+    },
+    {
+      "narration": "Small-batch Rhone blend. Bright fruit. Open up nicely.",
+      "voice": "af_heart",
+      "voice_speed": 0.95,
+      "prompt": "close-up of {maya} quietly mouthing the words back to herself, eyes down on {rhone} in her hands, locking them into memory, then a small determined nod, warm amber light",
+      "keyframe_seed": 5023,
+      "cast": [
+        "maya"
+      ],
+      "keyframe": "very tight close-up of the lower half of {maya}'s face, her lips parted silently mouthing words to herself, eyes cast down, {rhone} held in her hands at the bottom edge of the frame, warm intimate amber light, everything else out of focus"
+    },
+    {
+      "narration": "And if his dad asks about the tannins?",
+      "voice": "bm_george",
+      "prompt": "close-up of {arthur} testing her with one eyebrow raised and a small amused smile, warm amber light, shallow depth of field",
+      "keyframe_seed": 5024,
+      "cast": [
+        "arthur"
+      ],
+      "keyframe": "extreme close-up of {arthur}'s face filling the vertical frame, testing her with one eyebrow raised high and a small amused smile pulling at his beard, warm amber light, background completely defocused"
+    },
+    {
+      "narration": "I change the subject to his watch.",
+      "voice": "af_heart",
+      "prompt": "close-up of {maya} delivering the line completely deadpan straight down the lens, utterly calm, one tiny confident blink, warm amber light",
+      "keyframe_seed": 5025,
+      "cast": [
+        "maya"
+      ],
+      "keyframe": "extreme close-up of {maya}'s face filling the whole vertical frame, staring straight down the lens completely deadpan and calm, not smiling at all, warm amber light, background entirely out of focus"
+    },
+    {
+      "narration": "Thank you. You might have just saved my relationship.",
+      "voice": "af_heart",
+      "prompt": "medium shot across a clean wood-topped counter, {arthur} slides {rhone} into a sleek matte kraft paper wine bag and hands it over, {maya} taps her card on the reader and beams, warm amber light",
+      "keyframe": "{arthur} behind a clean wood-topped shop counter sliding {rhone} into a sleek matte kraft paper wine bag and holding it out across the counter, {maya} on the near side reaching to take it and beaming, warm amber light, shelves of wine behind him, medium shot across the counter",
+      "keyframe_seed": 5026,
+      "cast": [
+        "arthur",
+        "maya",
+        "rhone"
+      ]
+    },
+    {
+      "narration": "Small-batch. Bright fruit. No wet pavement.",
+      "voice": "af_heart",
+      "voice_speed": 0.95,
+      "prompt": "exterior eye-level medium shot, {maya} steps out of the wine shop door onto a golden-hour sidewalk holding the kraft paper wine bag, pauses, looks down at the bag and takes one steady breath, warm backlight, glowing streetlamps, soft bokeh",
+      "keyframe": "{maya} standing on a city sidewalk at golden hour just outside a wine shop door, holding a sleek matte kraft paper wine bag, warm low backlight behind her, glowing streetlamps and creamy bokeh of evening pedestrians, medium shot",
+      "keyframe_seed": 4027,
+      "cast": [
+        "maya"
+      ]
+    },
+    {
+      "silence": 3.0,
+      "prompt": "{maya} tucks the kraft paper bag into the crook of her arm, lifts her chin and strides briskly down the dusk sidewalk, camera tracking backward and widening as she blends into warm city streetlights and creamy bokeh pedestrians",
+      "keyframe_seed": 4028,
+      "cast": [
+        "maya"
+      ]
+    }
+  ]
+}
