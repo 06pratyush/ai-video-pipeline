@@ -1,6 +1,10 @@
 <div align="center">
 
-<img src="https://img.shields.io/badge/AI%20VIDEO%20STUDIO-2.0.0-6366f1?style=for-the-badge&labelColor=0a0a0b" alt="AI Video Studio v2.0.0" />
+<img src=".github/social-preview.png" alt="AI Video Studio — a local AI video generator. A text script becomes a narrated, subtitled, colour-graded MP4, entirely on your own GPU. Gemma, FLUX.1, Wan2.2, RIFE, Kokoro TTS, faster-whisper, ACE-Step, FFmpeg." />
+
+<br>
+
+<img src="https://img.shields.io/badge/AI%20VIDEO%20STUDIO-2.0.1-6366f1?style=for-the-badge&labelColor=0a0a0b" alt="AI Video Studio v2.0.1" />
 
 # AI Video Studio
 
@@ -27,6 +31,7 @@ Your machine is the only computer in the loop.*
 [**Quick Start**](#quick-start) &nbsp;·&nbsp;
 [**Skills**](#skills) &nbsp;·&nbsp;
 [**Architecture**](#architecture) &nbsp;·&nbsp;
+[**Future work**](#future-work) &nbsp;·&nbsp;
 [**FAQ**](#faq) &nbsp;·&nbsp;
 [**Contributing**](CONTRIBUTING.md) &nbsp;·&nbsp;
 [**Issues**](https://github.com/06pratyush/ai-video-pipeline/issues)
@@ -59,7 +64,7 @@ assembles the result.
 | **Use it for** | YouTube explainers · TikTok / Reels / Shorts · documentary narration · product demos · tutorials · news recaps |
 | **Runs on** | Windows 10/11 · Ubuntu 22.04+ · macOS 12+ · NVIDIA GPU with 8 GB VRAM — v2 is built and tested on an RTX 4060 **laptop** |
 | **Costs** | Nothing — MIT licensed, no account, no metering, no telemetry |
-| **Docs** | [Architecture](#architecture) · [Skills](#skills) · [Build from source](#build-from-source) · [Troubleshooting](#troubleshooting) · [FAQ](#faq) · [Contributing](CONTRIBUTING.md) · [Review & merge policy](REVIEW_AND_MERGE.md) |
+| **Docs** | [Architecture](#architecture) · [Skills](#skills) · [Build from source](#build-from-source) · [Troubleshooting](#troubleshooting) · [Future work](#future-work) · [FAQ](#faq) · [Contributing](CONTRIBUTING.md) · [Review & merge policy](REVIEW_AND_MERGE.md) |
 
 ---
 
@@ -187,9 +192,9 @@ Auto-versioning per render.
 <td width="33%" valign="top">
 
 ### Pro Quality Layer
-Whisper subtitles · MusicGen score  
-30fps interpolation · 2× upscaling  
-Cinematic color grading
+Word-synced captions · ACE-Step score  
+RIFE 48 fps · Real-ESRGAN 2×  
+Cinematic colour grading
 
 </td>
 </tr>
@@ -199,7 +204,10 @@ Cinematic color grading
 
 ## What it does
 
-Write a script. Pick a Skill. Hit Generate. Five to fifteen minutes later you have a finished MP4 with narration, visuals, music, subtitles, and color grading — ready to post.
+Write a script. Pick a Skill. Hit Generate. You get a finished MP4 with narration, visuals, music,
+word-synced captions and colour grading — ready to post. How long that takes is the video model's
+cost, not the app's: about **16 minutes** for a 2-scene project and **2 h 35 min** for a 13-scene
+film on an RTX 4060 Laptop.
 
 ```
    ┌───────────────────┐
@@ -253,21 +261,22 @@ Write a script. Pick a Skill. Hit Generate. Five to fifteen minutes later you ha
 ### Windows
 NSIS installer or portable .exe
 ```
-AI-Video-Studio-2.0.0-x64.exe
+AI-Video-Studio-2.0.1-x64.exe
+AI-Video-Studio-2.0.1-x64-portable.exe
 ```
 
 ### Linux
 AppImage (universal) or .deb
 ```
-AI-Video-Studio-2.0.0-x64.AppImage
-AI-Video-Studio-2.0.0-x64.deb
+AI-Video-Studio-2.0.1-x86_64.AppImage
+AI-Video-Studio-2.0.1-amd64.deb
 ```
 
 ### macOS
 DMG for Apple Silicon or Intel
 ```
-AI-Video-Studio-2.0.0-arm64.dmg
-AI-Video-Studio-2.0.0-x64.dmg
+AI-Video-Studio-2.0.1-arm64.dmg
+AI-Video-Studio-2.0.1-x64.dmg
 ```
 
 </td>
@@ -284,7 +293,9 @@ AI-Video-Studio-2.0.0-x64.dmg
 17:00  ████████████████████  Ready
 ```
 
-After that, each video render takes **5–15 minutes**.
+After that, render time is set by the video model, not the install: a 2-scene project is about
+**16 minutes** and a 13-scene, 77-second film about **2 h 35 min** on an RTX 4060 Laptop. See
+[the measured breakdown](#measured-on-an-rtx-4060-laptop-8-gb-vram-16-gb-ram).
 
 </td>
 </tr>
@@ -365,10 +376,15 @@ The Render tab exposes four toggles independent of the Skill:
 
 | Toggle | Backend Module | Cost |
 |--------|----------------|------|
-| **Subtitles**          | faster-whisper transcription → FFmpeg subtitle burn | ~10s per minute of audio |
-| **Background Music**   | MusicGen mood-matched composition + auto-ducking mix | ~30s per scene |
-| **Frame Interpolation** | FFmpeg minterpolate (RIFE-compatible swap-in) | +30% render time |
-| **Upscaling**          | FFmpeg super2xbr+lanczos (Real-ESRGAN swap-in) | +20% render time |
+| **Subtitles**           | faster-whisper word timestamps (GPU) → burned-in ASS, active word highlighted | seconds for a whole film |
+| **Background Music**    | ACE-Step 3.5B (GPU), mood-matched, ducked under the voice, mixed to −14 LUFS | ~35–40 s per 80 s of audio |
+| **Frame Interpolation** | RIFE 4.9 in ComfyUI (GPU), per clip, 24 → 48 fps | 12–39 s per clip |
+| **Upscaling**           | Real-ESRGAN x2plus in ComfyUI (GPU) | ~7 min per scene |
+
+All four run on the GPU in v2. The CPU paths they replaced — `minterpolate` and `super2xbr` — are
+gone from the render path, and MusicGen is kept only as a fallback behind ACE-Step, because its
+weights are CC-BY-NC and so cannot be monetised. `scripts/doctor.py` proves which device each
+stage actually runs on.
 
 Skills auto-enable some toggles by default (e.g. Social Short turns on subtitles because mobile viewers watch muted).
 
@@ -528,6 +544,70 @@ Open an issue on GitHub if you hit a symptom not covered above — include OS, G
 
 ---
 
+## Future work
+
+v2 renders a finished film on an 8 GB laptop GPU. What it does not yet have is *range*: one
+keyframe engine, one video model, seven Skills, and one look per Skill. The four areas below are
+where the project is deliberately unfinished, and where a contribution has the most leverage.
+Every limitation named here is a real, reproduced one — the ones marked `GAP-nn` are tracked in
+[CONTEXT.md](CONTEXT.md), this project's engineering log.
+
+### Skills for AI
+
+A Skill is the preset that decides the whole look and feel of a render: prompt template, voice,
+pacing, music mood, post chain. There are seven, all plain JSON in `app/skills/`, so this is the
+one area that needs no Python at all.
+
+| Wanted | Why it is open |
+|---|---|
+| **More Skills** | Interview, podcast-to-video, audiobook chapter, recipe, sports recap, lecture, devlog. One JSON file each — copy the nearest and change it |
+| **Skills that hold a cast** | The v2 story format already renders a two-hander, with a per-scene `voice` and silent beats that keep their slot on the timeline. The Skill layer cannot express any of it, so dialogue is reachable only by hand-writing a story file |
+| **Installable Skill packs** | A folder or URL of Skills, validated against a published schema at load, so a look can be shared without a pull request |
+| **Captions per Skill** | Font, size, position and highlight colour live in the story file today, not in the Skill |
+| **Model-aware prompt templates** | The same template is sent to FLUX schnell and FLUX Kontext, which want different wording — see *Image generation* below |
+
+### Styles and looks
+
+Everything between the rendered clip and the finished file: grade, grain, framing, type.
+
+| Wanted | Why it is open |
+|---|---|
+| **Grades as data** | The grade is FFmpeg `curves` + `eq` written into the merger. Moving presets into files, and supporting a 3D LUT (`lut3d`, a `.cube` file), makes a look a shareable asset rather than a code change |
+| **Film emulation** | Grain, halation, bloom, vignette, gate weave — each a small, independently testable filter stage |
+| **Caption placement per scene** | `GAP-08`. Caption height is one story-level constant, so a piece that cuts between wide shots and tight close-ups has a single compromise position; at the height that suited a reference short, the band crossed an actor's eyes in every close-up. Deriving it from where the face is would close this |
+| **A compositing stage** | There is none, and this is the largest missing capability in the edit path. A 5B video model does not render designed overlays, so lower thirds, titles, callouts, logos and end cards cannot be produced at all today |
+
+### Image generation
+
+Keyframes and character sheets — FLUX.1 schnell for speed, FLUX.1 Kontext dev for consistency.
+This stage decides whether a character is still the same person in scene 20.
+
+| Wanted | Why it is open |
+|---|---|
+| **Shot-aware prompt building** | Kontext defends the reference sheet's *framing* as well as its identity. Eight scenes of the sample dialogue short came back at the character sheet's distance and only moved after a hand-written per-scene `keyframe` prompt naming the shot. A builder that knows the shot size removes that manual step |
+| **Text that survives diffusion** | Long numerals lose digits: a `$165.00` price sticker came back as `$16.00` on one of five seeds tried. The current fix is a pinned seed per insert. Rendering small text in post, or routing text inserts to a model that handles glyphs, would be a real fix |
+| **Props, not just characters** | Reference conditioning covers the cast; a prop drifts. A wine bottle alternated between white and red across four consecutive shots until its colour was pinned by hand in every prompt |
+| **More engines** | SDXL, SD3.5, Qwen-Image behind the same ComfyUI client — and above all a **fully commercial-licensed consistency path**, because the best one today, FLUX.1 Kontext dev, is non-commercial and the app has to flag it |
+| **Keep the model resident** | Keyframes are the slowest stage on a 16 GB machine because of RAM, not the GPU: ComfyUI cannot cache FLUX and T5 between prompts and reloads them every time |
+
+### Video generation
+
+Animating each keyframe — Wan2.2 TI2V-5B, 4-bit GGUF, through ComfyUI.
+
+| Wanted | Why it is open |
+|---|---|
+| **Render at the model's own resolution** | `GAP-09`, and the dominant quality lever. Clips default to 480×832 while Wan2.2 TI2V-5B is trained at 704×1280, so the stage discards detail the keyframe stage already paid for. At full resolution a bottle label reads correctly and fingers resolve individually — and two minutes of film costs about twelve hours on an 8 GB card. Block swapping, attention kernels and an offload strategy measured per GPU are what make that affordable |
+| **More video models** | Wan2.2 14B, LTX-Video, HunyuanVideo, CogVideoX behind one client interface, with VRAM-aware routing choosing between them |
+| **Shots longer than one clip** | Chaining a clip's last frame into the next clip's first frame lets a shot run past the model's frame budget without a cut |
+| **Camera motion from the model** | v2 removed the synthetic camera push from the edit stage: quantised to whole pixels it produced a 4.8 Hz tick that cancelled the RIFE interpolation the smooth stage spends ten minutes producing. Camera movement belongs in the video model's conditioning, not in a filter |
+| **Non-NVIDIA hardware** | An AMD ROCm path, and Apple Silicon. Everything today assumes CUDA |
+| **Cancel inside a clip** | `GAP-05`. A cancel is observed at scene boundaries, so one long clip must finish first |
+
+Pick one and [open an issue](https://github.com/06pratyush/ai-video-pipeline/issues/new/choose)
+before starting — for work this size, agreeing the design first is the step that saves a rewrite.
+
+---
+
 ## Contributing
 
 Contributions are welcome, and the full guide lives in **[CONTRIBUTING.md](CONTRIBUTING.md)** —
@@ -543,9 +623,12 @@ Good places to start, roughly easiest first:
 | **Colour grades** | Extra FFmpeg post-processing presets in `pipeline/ffmpeg_merger.py` |
 | **Docs & troubleshooting** | Symptoms you hit that [Troubleshooting](#troubleshooting) does not cover |
 | **Tests** | Automated coverage is a Phase 9 goal; `app/backend/tests/` is the beachhead |
-| **Real-ESRGAN / RIFE nodes** | Native ComfyUI node integrations to replace the FFmpeg fallbacks |
+| **Colour LUTs** | `.cube` support so a look is a file, not a code change — see [Future work](#future-work) |
 | **AMD ROCm support** | A working Wan2.2 path for non-NVIDIA GPUs |
 | **Mobile companion** | Trigger and monitor renders from a phone |
+
+Larger, open-ended work — new Skills, new looks, other keyframe and video models — is set out in
+**[Future work](#future-work)**, with the reason each one is still open.
 
 Before starting anything large, [open an issue](https://github.com/06pratyush/ai-video-pipeline/issues/new/choose)
 so the design can be agreed first — that is the step that most often saves a rewrite.
@@ -692,6 +775,6 @@ Built on the shoulders of these excellent open-source projects:
 
 <br><br>
 
-<sub>Released under the MIT License · v2.0.0</sub>
+<sub>Released under the MIT License · v2.0.1</sub>
 
 </div>
