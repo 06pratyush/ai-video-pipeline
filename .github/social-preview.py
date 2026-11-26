@@ -1,6 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-"""Render the GitHub social preview card for AI Video Studio (1280x640)."""
+"""Render the AI Video Studio brand card (1280x640).
+
+One image, two jobs: it is the GitHub social preview (Settings -> General ->
+Social preview, which has no API, so the upload stays manual) and the README
+cover. Keeping both from one generator means the model chips can never
+disagree with each other, only with the pipeline - and the pipeline is the
+thing this file is edited from.
+"""
 import os
 import sys
 from PIL import Image, ImageDraw, ImageFont
@@ -132,11 +139,14 @@ d.text((X, 364), "colour-graded MP4 \u2014 entirely on your own GPU.",
        font=f_sub2, fill=GREY)
 
 # model chips
-chips = ["Wan2.1", "Gemma", "Kokoro TTS", "Whisper", "MusicGen", "FFmpeg"]
+# The v2 lineup, in pipeline order. Two rows at this font size; the wrap
+# below keeps them clear of the video motif column.
+chips = ["Gemma", "FLUX.1", "Wan2.2", "RIFE", "Kokoro TTS",
+         "faster-whisper", "ACE-Step", "FFmpeg"]
 cx, cy = X, 444
 for c in chips:
     w = int(d.textlength(c, font=f_chip)) + 30
-    if cx + w > 910:                      # wrap before the video motif column
+    if cx + w > 790:                      # wraps 5 + 3, well clear of the motif at 936
         cx, cy = X, cy + 46
     d.rounded_rectangle([cx, cy, cx + w, cy + 38], radius=19,
                         fill=(24, 24, 29, 255), outline=(63, 63, 72, 255), width=1)
