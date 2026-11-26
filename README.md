@@ -532,7 +532,7 @@ Ollama crashed or wasn't started. The app tries to start it automatically — op
 ComfyUI starts lazily on first generation. If it fails to start, check that `app/runtime/comfyui/` exists and contains a `main.py`. Re-run the bootstrap if not.
 
 **"CUDA out of memory" mid-generation**  
-The VRAM manager should have downgraded to a smaller model — check the queue progress message for "Used wan2.1-1.3b instead of wan2.1-14b". If still failing, close other GPU apps (Chrome with hardware accel uses 1–2 GB), or restart the daemon.
+v2 ships one video model, so there is nothing smaller to fall back to. The queue checks free VRAM before the stage and warns "Low VRAM (…MB free, need …MB) — generation may fail" rather than downgrading; Wan2.2 TI2V-5B needs about 6 GB free on top of whatever else is resident. The daemon already unloads the Ollama model before the video stage, so what is left is other software: close other GPU apps (Chrome with hardware acceleration uses 1–2 GB), or restart the daemon to clear a leaked ComfyUI context.
 
 **Black bars / wrong aspect ratio in output**  
 The Skill controls aspect ratio. Social Short → 9:16, all others → 16:9 by default. Change the Skill or duplicate one and edit the JSON.
@@ -651,9 +651,11 @@ telemetry. The only costs are your electricity and disk space.
 <details>
 <summary><b>Does it work offline?</b></summary>
 
-Yes, after setup. First launch downloads roughly 20 GB of models and needs a connection. After that
-every render runs entirely on your machine and you can stay disconnected permanently. The only
-outbound request the app ever makes is an optional update check against GitHub Releases.
+Yes, after setup. The first launch installs the runtime — Python and a venv, PyTorch and CUDA,
+ComfyUI and its dependencies, and the Ollama model — and downloads the v2 model stack, about
+34 GB, so how long that part takes depends on your connection. After that every render runs
+entirely on your machine and you can stay disconnected permanently. The only outbound request the
+app ever makes is an optional update check against GitHub Releases.
 
 </details>
 
@@ -669,9 +671,13 @@ because the GGUF video path has no tested ROCm build.
 <details>
 <summary><b>How long does one video take to generate?</b></summary>
 
-Five to fifteen minutes for a typical 30–60 second video on a 16 GB GPU, after a one-time setup of
-about 17 minutes. Each quality option adds to that: frame interpolation +30%, upscaling +20%, music
-about 30s per scene, subtitles about 10s per minute of audio.
+Longer than a hosted service, because the video model runs on your own card. Measured on an RTX
+4060 Laptop (8 GB VRAM, 16 GB RAM): about **16 minutes** for a 2-scene project through the render
+queue, and about **2 h 35 min** for a 13-scene, 77-second film. Animating the clips is most of it,
+at roughly 6 minutes a scene; smoothing adds 12–39s per clip, music 34–40s for 80s of audio, and
+captions seconds for the whole film. Optional Real-ESRGAN upscaling is the expensive extra, at
+about 7 minutes a scene — see
+[the measured breakdown](#measured-on-an-rtx-4060-laptop-8-gb-vram-16-gb-ram).
 
 </details>
 
