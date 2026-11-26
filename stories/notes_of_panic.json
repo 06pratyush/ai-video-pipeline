@@ -26,7 +26,7 @@
   "music": "warm French jazz quartet, nylon string acoustic guitar, upright bass, soft brushed snare drums, gentle accordion, relaxed swing, Parisian cafe, cosy and light-hearted, major key, medium slow tempo, instrumental",
   "music_seed": 7,
   "captions": {
-    "margin_v": 1360,
+    "margin_v": 330,
     "size": 64,
     "uppercase": false,
     "words_per_chunk": 4
