@@ -5,20 +5,20 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <title>AI Video Studio — Local AI Video Generator | How It Works</title>
-<meta name="description" content="Free, open-source local AI video generator. See how its 8-stage pipeline turns a script into a narrated, subtitled MP4 on your own GPU. No cloud, no API keys.">
+<meta name="description" content="Free, open-source local AI video generator. FLUX draws the keyframes, Wan2.2 animates them, and eight local stages give you a narrated, captioned MP4 on your own GPU.">
 <link rel="canonical" href="https://06pratyush.github.io/ai-video-pipeline/">
 
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="AI Video Studio">
 <meta property="og:title" content="AI Video Studio — Local AI Video Generator">
-<meta property="og:description" content="A text script becomes a narrated, subtitled, colour-graded MP4 — entirely on your own GPU. See how the eight-stage pipeline works.">
+<meta property="og:description" content="A text script becomes a narrated, captioned, colour-graded MP4 — entirely on your own GPU. Gemma, FLUX.1, Wan2.2, RIFE, Kokoro, faster-whisper, ACE-Step and FFmpeg, all local.">
 <meta property="og:url" content="https://06pratyush.github.io/ai-video-pipeline/">
 <meta property="og:image" content="https://06pratyush.github.io/ai-video-pipeline/og.png">
 <meta property="og:image:width" content="1280">
 <meta property="og:image:height" content="640">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="AI Video Studio — Local AI Video Generator">
-<meta name="twitter:description" content="A text script becomes a narrated, subtitled, colour-graded MP4 — entirely on your own GPU.">
+<meta name="twitter:description" content="A text script becomes a narrated, captioned, colour-graded MP4 — entirely on your own GPU.">
 <meta name="twitter:image" content="https://06pratyush.github.io/ai-video-pipeline/og.png">
 
 <meta name="theme-color" content="#0a0a0b">
@@ -35,15 +35,29 @@
       "applicationCategory": "MultimediaApplication",
       "applicationSubCategory": "Video Generation",
       "operatingSystem": "Windows 10, Windows 11, Ubuntu 22.04, macOS 12",
-      "description": "A free, open-source, local AI video generator. Turns a text script into a narrated, subtitled, colour-graded MP4 entirely on the user's own GPU, with no cloud rendering, no API keys and no subscription.",
+      "description": "A free, open-source, local AI video generator. Turns a text script into a narrated, scored, word-synced-captioned and colour-graded MP4 entirely on the user's own GPU, with no cloud rendering, no API keys and no subscription. Gemma refines the script, FLUX.1 draws a character sheet and every scene's keyframe, Wan2.2 TI2V-5B animates them, RIFE smooths the motion to 48 fps, Kokoro speaks the narration, faster-whisper times every word, ACE-Step scores it and FFmpeg assembles it.",
       "url": "https://06pratyush.github.io/ai-video-pipeline/",
       "downloadUrl": "https://github.com/06pratyush/ai-video-pipeline/releases/latest",
-      "softwareVersion": "1.0.0",
+      "softwareVersion": "2.0.1",
       "license": "https://opensource.org/licenses/MIT",
       "isAccessibleForFree": true,
       "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
       "author": { "@type": "Person", "name": "06pratyush", "url": "https://github.com/06pratyush" },
-      "softwareRequirements": "NVIDIA GPU with 8 GB VRAM (16 GB recommended), 16 GB RAM, 30 GB free disk, Python 3.10+, Node.js 18+"
+      "softwareRequirements": "NVIDIA GPU with 8 GB VRAM (12 GB or more recommended), 16 GB RAM, 45 GB free disk of which the model stack is about 34 GB, Python 3.10+, Node.js 18+. CUDA only; AMD and CPU-only rendering are not supported.",
+      "releaseNotes": "https://github.com/06pratyush/ai-video-pipeline/releases/latest",
+      "featureList": [
+        "Script to finished MP4 entirely on a local NVIDIA GPU",
+        "Consistent characters: FLUX.1 draws a character sheet, then every scene keyframe from it",
+        "Image-to-video animation with Wan2.2 TI2V-5B (4-bit GGUF)",
+        "RIFE 4.9 frame interpolation on the GPU, 24 to 48 fps per clip",
+        "Optional Real-ESRGAN x2plus upscaling on the GPU",
+        "Word-synced burned-in captions timed by faster-whisper",
+        "Local music generation with ACE-Step 3.5B, ducked under the narration at -14 LUFS",
+        "Eight Kokoro TTS voices, plus voice cloning from a reference clip with XTTS v2",
+        "Seven built-in style presets (Skills) as editable JSON",
+        "Persistent SQLite render queue, scene cache, templates, version history and batch rendering",
+        "No account, no telemetry, no cloud call beyond an optional update check"
+      ]
     },
     {
       "@type": "FAQPage",
@@ -51,11 +65,11 @@
         { "@type": "Question", "name": "Is AI Video Studio free?",
           "acceptedAnswer": { "@type": "Answer", "text": "Yes. It is MIT licensed and free permanently. There is no account, no metering, no paid tier and no telemetry." } },
         { "@type": "Question", "name": "Does it work offline?",
-          "acceptedAnswer": { "@type": "Answer", "text": "Yes, after setup. The first launch downloads roughly 20 GB of models. After that every render runs entirely on your machine and you can stay disconnected permanently." } },
+          "acceptedAnswer": { "@type": "Answer", "text": "Yes, after setup. The first launch installs the runtime and downloads the model stack, about 34 GB. After that every render runs entirely on your machine and you can stay disconnected permanently." } },
         { "@type": "Question", "name": "Do I need an NVIDIA GPU?",
-          "acceptedAnswer": { "@type": "Answer", "text": "For usable speed, yes — 8 GB VRAM minimum, 16 GB or more recommended. CPU-only mode runs but is roughly 10 times slower. AMD GPUs are not supported because Wan2.1 has no ROCm path." } },
+          "acceptedAnswer": { "@type": "Answer", "text": "Yes. 8 GB VRAM is the minimum and a laptop GPU is enough, because the video model is a 4-bit GGUF build; 12 GB or more is recommended. CPU-only mode is not practical for video in v2. AMD GPUs are not supported yet, because the GGUF video path has no tested ROCm build." } },
         { "@type": "Question", "name": "How long does one video take to generate?",
-          "acceptedAnswer": { "@type": "Answer", "text": "Five to fifteen minutes for a typical 30 to 60 second video on a 16 GB GPU, after a one-time setup of about 17 minutes." } },
+          "acceptedAnswer": { "@type": "Answer", "text": "Longer than hosted services, because the video model runs on your own card. Measured on an RTX 4060 Laptop with 8 GB of VRAM: about 16 minutes for a 2-scene project, and about 2 hours 35 minutes for a 13-scene, 77-second film." } },
         { "@type": "Question", "name": "How is this different from Runway, Pika or Sora?",
           "acceptedAnswer": { "@type": "Answer", "text": "Those are hosted services billed per generation under their content policy. AI Video Studio runs the same class of pipeline on hardware you own, so you get unlimited renders, no upload and no recurring cost, in exchange for needing a capable GPU." } }
       ]
@@ -98,8 +112,8 @@
     <p class="lede">
       AI Video Studio is a free, open-source <strong>local AI video generator</strong> for Windows,
       Linux and macOS. Paste a script, pick a style, and eight stages later you have a narrated,
-      scored, subtitled, colour-graded MP4 — rendered entirely on your own GPU. No cloud, no
-      subscription, and nothing ever leaves your machine.
+      scored, word-synced-captioned, colour-graded MP4 — rendered entirely on your own GPU. No
+      cloud, no subscription, and nothing ever leaves your machine.
     </p>
     <div class="cta">
       <a class="btn primary" href="https://github.com/06pratyush/ai-video-pipeline/releases/latest">Download</a>
@@ -107,8 +121,8 @@
       <a class="btn quiet" href="https://github.com/06pratyush/ai-video-pipeline">View source</a>
     </div>
     <p class="note">
-      Requires an NVIDIA GPU with 8&nbsp;GB VRAM or more. CPU-only mode works but is roughly
-      10&times; slower. <a href="#requirements">Full requirements →</a>
+      Requires an NVIDIA GPU with 8&nbsp;GB VRAM or more — a laptop GPU is enough. CPU-only
+      rendering is not practical for video. <a href="#requirements">Full requirements →</a>
     </p>
   </div>
 </section>
@@ -117,7 +131,7 @@
 <section class="band">
   <div class="wrap stats">
     <div><strong>8</strong><span>pipeline stages</span></div>
-    <div><strong>5–15 min</strong><span>per finished video</span></div>
+    <div><strong>2 h 35 min</strong><span>a 13-scene film, measured on an RTX 4060 Laptop</span></div>
     <div><strong>7</strong><span>built-in style presets</span></div>
     <div><strong>$0</strong><span>forever, MIT licensed</span></div>
   </div>
@@ -130,81 +144,111 @@
     <h2>Eight stages, all running locally</h2>
     <p class="sub">
       When you press <em>Generate</em>, the backend queues your project and a worker thread walks it
-      through the stages below. Each stage hands its output to the next. Optional stages fail soft —
-      if MusicGen is missing, you get a video without music rather than an error.
+      through the stages below. Each stage hands its output to the next, and every model stage runs
+      on CUDA. Optional stages fail soft — if ACE-Step is missing you get a video without music
+      rather than an error. The timings are measured on an RTX 4060 Laptop (8&nbsp;GB VRAM,
+      16&nbsp;GB RAM), which is the machine v2 was built and verified on.
     </p>
 
     <ol class="pipeline">
       <li>
         <span class="n">1</span>
         <div class="body">
-          <h3>Narration refinement <span class="tag">Always</span></h3>
-          <p>Your raw script is rewritten into clean spoken narration — contractions, pacing, and the awkward phrasing that reads fine but sounds wrong.</p>
-          <p class="meta"><code>Gemma 3 / 4B</code> via Ollama · ~10s</p>
+          <h3>Narration &amp; scene prompts <span class="tag">Always</span></h3>
+          <p>Your raw script is rewritten into clean spoken narration — contractions, pacing, and the awkward phrasing that reads fine but sounds wrong — and then split into scenes, each with a visual prompt written for a diffusion model.</p>
+          <p class="meta"><code>Gemma 3 / 4B</code> via Ollama · ~10s each</p>
         </div>
       </li>
       <li>
         <span class="n">2</span>
         <div class="body">
-          <h3>Scene prompt generation <span class="tag">Always</span></h3>
-          <p>The narration is split into scenes, and each scene gets a visual prompt written for a diffusion model — subject, setting, lighting, camera.</p>
-          <p class="meta"><code>Gemma 3 / 4B</code> · ~10s</p>
+          <h3>Voice synthesis <span class="tag">Always</span></h3>
+          <p>The narration is spoken by one of eight voices, on the GPU. Your own voice can be cloned from a reference clip through XTTS&nbsp;v2.</p>
+          <p class="meta"><code>Kokoro TTS</code> · ~5s per 100 words</p>
         </div>
       </li>
       <li>
         <span class="n">3</span>
         <div class="body">
-          <h3>Voice synthesis <span class="tag">Always</span></h3>
-          <p>The narration is spoken by one of eight voices. Your own voice can be cloned from a reference clip through XTTS&nbsp;v2.</p>
-          <p class="meta"><code>Kokoro TTS</code> · ~5s per 100 words</p>
+          <h3>Character sheets &amp; keyframes <span class="tag">Always</span></h3>
+          <p>This is what makes a cast survive a whole film. Each character is drawn once as a reference sheet, and then every scene&rsquo;s first frame is drawn with that character in it — so the person in scene 20 is still the person from scene 1.</p>
+          <p class="meta"><code>FLUX.1 schnell</code> (under a minute each) or <code>FLUX.1 Kontext dev</code> (3–8 min each, most consistent) via ComfyUI</p>
         </div>
       </li>
       <li class="heavy">
         <span class="n">4</span>
         <div class="body">
-          <h3>Video clip generation <span class="tag">Always</span> <span class="tag warn">Slowest stage</span></h3>
-          <p>Each scene prompt is rendered to a clip on your GPU. The model size is chosen by how much VRAM is actually free — the 14B model when there is room, the 1.3B model when there is not.</p>
-          <p class="meta"><code>Wan2.1 1.3B / 14B</code> via ComfyUI · ~3 min per scene</p>
+          <h3>Video clips <span class="tag">Always</span> <span class="tag warn">Slowest stage</span></h3>
+          <p>Each keyframe is animated into a clip on your GPU — image-to-video, so the motion starts from a frame you have already seen rather than from the text alone. 121 frames at 480&times;832, 20 steps.</p>
+          <p class="meta"><code>Wan2.2 TI2V-5B</code> GGUF via ComfyUI · ~6 min per scene</p>
         </div>
       </li>
       <li>
         <span class="n">5</span>
         <div class="body">
-          <h3>Background music <span class="tag opt">Optional</span></h3>
-          <p>A score is composed to match the mood your Skill specifies, then auto-ducked beneath the narration.</p>
-          <p class="meta"><code>MusicGen Small</code> · ~30s per scene</p>
+          <h3>Frame smoothing <span class="tag">Default on</span></h3>
+          <p>Every clip is interpolated on the GPU from 24 to 48&nbsp;fps, per clip rather than across the joined film, so a cut never has a frame invented across it. Upscaling is a separate, optional pass.</p>
+          <p class="meta"><code>RIFE 4.9</code> · 12–39s per clip · optional <code>Real-ESRGAN x2plus</code> ~7 min per scene</p>
         </div>
       </li>
       <li>
         <span class="n">6</span>
         <div class="body">
-          <h3>Subtitles <span class="tag opt">Optional</span></h3>
-          <p>The rendered audio is transcribed back to text with timings, then burned into the picture — which is why Social Short turns this on by default.</p>
-          <p class="meta"><code>faster-whisper Base</code> · ~10s per minute of audio</p>
+          <h3>Background music <span class="tag opt">Optional</span></h3>
+          <p>A score is composed on the GPU to match the mood your Skill specifies, then side-chain ducked beneath the narration and mixed to &minus;14&nbsp;LUFS.</p>
+          <p class="meta"><code>ACE-Step v1 3.5B</code> · 34–40s per 80s of audio</p>
         </div>
       </li>
       <li>
         <span class="n">7</span>
         <div class="body">
-          <h3>Interpolation &amp; upscaling <span class="tag opt">Optional</span></h3>
-          <p>Frames are interpolated to 30&nbsp;fps and the picture is upscaled to 1080p. RIFE and Real-ESRGAN drop in as replacements when installed.</p>
-          <p class="meta"><code>FFmpeg minterpolate</code> + <code>super2xbr</code> · +30% / +20% render time</p>
+          <h3>Word-synced captions <span class="tag opt">Optional</span></h3>
+          <p>The rendered audio is transcribed back with a timestamp for every single word, and the script&rsquo;s own words are burned in with the active word highlighted — which is why Social Short turns this on by default.</p>
+          <p class="meta"><code>faster-whisper small.en</code>, CUDA float16 · seconds for a whole film</p>
         </div>
       </li>
       <li>
         <span class="n">8</span>
         <div class="body">
           <h3>Colour grade &amp; mux <span class="tag">Always</span></h3>
-          <p>A colour grade and optional film grain are applied, clips are concatenated, audio is mixed, and the result is written out as <code>final.mp4</code>.</p>
-          <p class="meta"><code>FFmpeg curves / eq / concat</code> · ~30s</p>
+          <p>A colour grade and optional film grain are applied, clips are joined with dissolves that land on each new line, audio is mixed, and the result is encoded to <code>final.mp4</code> on NVENC.</p>
+          <p class="meta"><code>FFmpeg curves / eq / concat</code> · ~50s</p>
         </div>
       </li>
     </ol>
 
+    <h3 class="tablehead">The v2 model stack</h3>
+    <p class="sub">Every one of these downloads once and then runs on your own GPU. The size is
+    what you download; the licence decides what you may do with what comes out.</p>
+
+    <div class="tablewrap">
+      <table>
+        <caption class="sr">The v2 model stack, with download sizes and licences</caption>
+        <thead>
+          <tr><th scope="col">Stage</th><th scope="col">Model</th><th scope="col">Size</th><th scope="col">Licence</th></tr>
+        </thead>
+        <tbody>
+          <tr><th scope="row">Animate</th><td>Wan2.2 TI2V-5B GGUF Q4_K_M + UMT5 + VAE</td><td>8.5 GB</td><td>Apache-2.0</td></tr>
+          <tr><th scope="row">Keyframes · default</th><td>FLUX.1 schnell GGUF Q4_K_S + T5 + CLIP-L + VAE</td><td>10.3 GB</td><td>Apache-2.0</td></tr>
+          <tr><th scope="row">Keyframes · most consistent</th><td>FLUX.1 Kontext dev GGUF Q4_K_M</td><td>6.9 GB</td><td><strong>Non-commercial</strong></td></tr>
+          <tr><th scope="row">Music</th><td>ACE-Step v1 3.5B</td><td>7.7 GB</td><td>Apache-2.0</td></tr>
+          <tr><th scope="row">Smooth / sharpen</th><td>RIFE 4.9 · Real-ESRGAN x2plus</td><td>0.09 GB</td><td>MIT · BSD-3</td></tr>
+          <tr><th scope="row">Voice · word timing</th><td>Kokoro 82M · faster-whisper small.en</td><td>0.6 GB</td><td>Apache-2.0 · MIT</td></tr>
+          <tr><th scope="row">Script work</th><td>Gemma 3 / 4B via Ollama</td><td>3.2 GB</td><td>Gemma terms</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p class="note center">
+      FLUX.1 Kontext dev gives the most consistent characters but is licensed for non-commercial use
+      only, and the app flags it as such — pick FLUX.1 schnell for anything you intend to monetise.
+      <code>scripts/doctor.py</code> reports which device each stage will actually run on.
+    </p>
+
     <div class="callout">
       <h3>What makes it survivable</h3>
       <ul>
-        <li><strong>VRAM-aware routing.</strong> The model is picked from free VRAM at the moment the stage runs, so a full GPU downgrades instead of crashing.</li>
+        <li><strong>One heavy model at a time.</strong> The daemon unloads the LLM from Ollama before the video stage and checks free VRAM against what the stage needs, warning you up front instead of dying halfway through.</li>
         <li><strong>A persistent queue.</strong> Progress lives in SQLite, so closing the app mid-render does not lose the job.</li>
         <li><strong>A scene cache.</strong> Keyed on <code>sha256(prompt + seed + model + resolution)</code> — re-rendering a project only redoes the scenes that changed.</li>
         <li><strong>Soft failure.</strong> Optional stages degrade rather than aborting the render.</li>
@@ -242,7 +286,8 @@
       <div class="tier">
         <h3>Local runtimes</h3>
         <p class="stack">ComfyUI · Ollama · FFmpeg</p>
-        <p>Started on demand, and stopped only if this app was the one that started them.</p>
+        <p>ComfyUI runs FLUX.1, Wan2.2, RIFE and Real-ESRGAN; Ollama serves Gemma; FFmpeg encodes
+        on NVENC. Started on demand, and stopped only if this app was the one that started them.</p>
       </div>
     </div>
 
@@ -315,9 +360,9 @@
       <table>
         <thead><tr><th scope="col"></th><th scope="col">Minimum</th><th scope="col">Recommended</th></tr></thead>
         <tbody>
-          <tr><th scope="row">GPU</th><td>NVIDIA · 8 GB VRAM</td><td>NVIDIA · 16 GB+ VRAM</td></tr>
+          <tr><th scope="row">GPU</th><td>NVIDIA · 8 GB VRAM · laptop OK</td><td>NVIDIA · 12 GB+ VRAM</td></tr>
           <tr><th scope="row">RAM</th><td>16 GB</td><td>32 GB</td></tr>
-          <tr><th scope="row">Disk</th><td>30 GB free</td><td>100 GB free</td></tr>
+          <tr><th scope="row">Disk</th><td>45 GB free · models ~34 GB</td><td>100 GB free</td></tr>
           <tr><th scope="row">OS</th><td>Win 10 · Ubuntu 22.04 · macOS 12</td><td>Win 11 · Ubuntu 24.04 · macOS 14</td></tr>
           <tr><th scope="row">Python</th><td>3.10</td><td>3.11</td></tr>
           <tr><th scope="row">Node.js</th><td>18 LTS</td><td>20 LTS</td></tr>
@@ -327,12 +372,20 @@
 
     <div class="cols">
       <div>
-        <h3>First launch takes about 17 minutes</h3>
-        <p>That is a one-time download of roughly 20 GB — PyTorch and CUDA, ComfyUI and its dependencies, the Wan2.1 weights, and the Ollama model. After that you can disconnect permanently.</p>
+        <h3>Setup runs once, then you can disconnect</h3>
+        <p>The first launch installs Python and a venv, PyTorch and CUDA, ComfyUI and its
+        dependencies, and pulls the Ollama model — about 17 minutes of work. On top of that sits
+        the model stack itself, roughly 34&nbsp;GB, so how long the download takes is down to your
+        connection. <code>scripts/setup_models.py</code> fetches it resumably and checks every file
+        against an exact byte size before keeping it. After that, nothing needs the network.</p>
       </div>
       <div>
-        <h3>AMD is not supported yet</h3>
-        <p>Wan2.1 has no ROCm path, so there is no working AMD route today. CPU-only mode runs on any machine but is roughly 10&times; slower — hours rather than minutes per video.</p>
+        <h3>NVIDIA only, and verified on one machine</h3>
+        <p>A full end-to-end render is verified on Windows on an RTX 4060 Laptop with 8&nbsp;GB of
+        VRAM. Linux, macOS and GPUs below 8&nbsp;GB are not yet verified. AMD is not supported
+        because the GGUF video path has no tested ROCm build, and CPU-only rendering is not
+        practical for video — the honest status of each is tracked in
+        <a href="https://github.com/06pratyush/ai-video-pipeline/blob/main/CONTEXT.md">CONTEXT.md</a>.</p>
       </div>
     </div>
   </div>
@@ -375,19 +428,19 @@ start.bat
       <p>Yes. It is MIT licensed and free permanently. There is no account, no metering, no paid tier and no telemetry. The only costs are your electricity and disk space.</p></details>
 
     <details class="disc"><summary>Does it work offline?</summary>
-      <p>Yes, after setup. The first launch downloads roughly 20 GB of models and needs a connection. After that every render runs entirely on your machine and you can stay disconnected permanently. The only outbound request the app makes is an optional update check against GitHub Releases.</p></details>
+      <p>Yes, after setup. The first launch installs the runtime and downloads the model stack, about 34 GB, and needs a connection. After that every render runs entirely on your machine and you can stay disconnected permanently. The only outbound request the app makes is an optional update check against GitHub Releases.</p></details>
 
     <details class="disc"><summary>Do I need an NVIDIA GPU?</summary>
-      <p>For usable speed, yes — 8 GB VRAM minimum, 16 GB or more recommended. CPU-only mode runs but is roughly 10&times; slower, meaning hours rather than minutes per video. AMD GPUs are not supported because Wan2.1 has no ROCm path.</p></details>
+      <p>Yes. 8 GB VRAM is the minimum and a laptop GPU is enough, because the video model is a 4-bit GGUF build; 12 GB or more is recommended. CPU-only mode is not practical for video in v2. AMD GPUs are not supported yet, because the GGUF video path has no tested ROCm build.</p></details>
 
     <details class="disc"><summary>How long does one video take?</summary>
-      <p>Five to fifteen minutes for a typical 30–60 second video on a 16 GB GPU. Each quality option adds to that: interpolation +30%, upscaling +20%, music about 30s per scene, subtitles about 10s per minute of audio.</p></details>
+      <p>Longer than a hosted service, because the video model runs on your own card. Measured on an RTX 4060 Laptop with 8 GB of VRAM: about <strong>16 minutes</strong> for a 2-scene project through the render queue, and about <strong>2 h 35 min</strong> for a 13-scene, 77-second film. Animating the clips is most of that, at roughly 6 minutes a scene; smoothing adds 12–39s per clip, music 34–40s for 80s of audio, and captions seconds for the whole film. Optional Real-ESRGAN upscaling is the expensive extra, at about 7 minutes a scene.</p></details>
 
     <details class="disc"><summary>How is this different from Runway, Pika or Sora?</summary>
       <p>Those are hosted services: you submit a prompt, their GPUs render it, and you pay per generation under their content policy. AI Video Studio runs the same class of pipeline on hardware you own — unlimited renders, no upload, no content review, no recurring cost — in exchange for needing a capable GPU and the patience for a local render.</p></details>
 
     <details class="disc"><summary>Can I use the output commercially?</summary>
-      <p>The application is MIT licensed, so the code is yours to use. Output rights depend on the models you run — Wan2.1, Gemma, Kokoro, MusicGen and Whisper each carry their own licence. Check each model's terms against your intended use; this project cannot grant rights it does not hold.</p></details>
+      <p>The application is MIT licensed, so the code is yours to use. Output rights depend on the models you run — Wan2.2, FLUX.1, ACE-Step, RIFE, Real-ESRGAN, Gemma, Kokoro and Whisper each carry their own licence. Most of the stack is Apache-2.0, MIT or BSD-3, but <strong>FLUX.1 Kontext dev is non-commercial</strong>: pick FLUX.1 schnell for anything you intend to monetise. Check each model's terms against your intended use; this project cannot grant rights it does not hold.</p></details>
 
     <details class="disc"><summary>Where are my videos stored?</summary>
       <p>Under <code>app/projects/&lt;project-id&gt;/</code> beside the application, indexed by a SQLite database. Nothing is uploaded. Note that deleting a project removes its database rows but leaves the media on disk.</p></details>
@@ -432,11 +485,14 @@ start.bat
     </nav>
   </div>
   <p class="wrap copyright">
-    Built on <a href="https://github.com/Wan-AI/Wan2.1">Wan2.1</a>,
+    Built on <a href="https://github.com/Wan-Video/Wan2.2">Wan2.2</a>,
+    <a href="https://github.com/black-forest-labs/flux">FLUX.1</a>,
     <a href="https://ai.google.dev/gemma">Gemma</a>,
+    <a href="https://github.com/hzwer/ECCV2022-RIFE">RIFE</a>,
+    <a href="https://github.com/xinntao/Real-ESRGAN">Real-ESRGAN</a>,
     <a href="https://github.com/hexgrad/kokoro">Kokoro&nbsp;TTS</a>,
     <a href="https://github.com/SYSTRAN/faster-whisper">faster-whisper</a>,
-    <a href="https://github.com/facebookresearch/audiocraft">MusicGen</a>,
+    <a href="https://github.com/ace-step/ACE-Step">ACE-Step</a>,
     <a href="https://github.com/comfyanonymous/ComfyUI">ComfyUI</a>,
     <a href="https://ollama.com">Ollama</a> and
     <a href="https://ffmpeg.org">FFmpeg</a>.

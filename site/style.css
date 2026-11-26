@@ -242,6 +242,10 @@ h3 { font-size: 1.08rem; margin: 0 0 8px; font-weight: 650; letter-spacing: -.01
 .arrow::after { content: "→"; font-size: 20px; color: var(--indigo); line-height: 1; }
 
 /* ───────────────────────────── tables */
+/* A heading that introduces a table mid-section, after a block that carries no
+   bottom margin of its own (the pipeline list). */
+.tablehead { margin: 40px 0 8px; }
+.tablehead + .sub { margin-bottom: 22px; }
 .tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--radius); }
 .tablewrap.narrow { max-width: 740px; }
 table { width: 100%; border-collapse: collapse; font-size: 15px; min-width: 560px; }
