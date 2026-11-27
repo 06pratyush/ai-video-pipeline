@@ -22,6 +22,10 @@ class Project(Base):
     audio_duration = Column(Float, nullable=True)
     final_path = Column(String, nullable=True)
     thumbnail_path = Column(String, nullable=True)
+    # Recurring characters, as JSON: {"noah": {"description": "...", "seed": 11}}. A project
+    # with none has every scene drawn independently, which is the safe default — reference
+    # based keyframes only engage once someone says who recurs.
+    characters = Column(Text, nullable=True)
 
     scenes = relationship("Scene", back_populates="project", cascade="all, delete-orphan")
     queue_items = relationship("QueueItem", back_populates="project", cascade="all, delete-orphan")

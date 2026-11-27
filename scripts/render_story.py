@@ -14,107 +14,78 @@ AI Video Studio v2 stages (each one skips work whose output already exists):
     venv311\\Scripts\\python.exe scripts\\render_story.py stories\\noahs_ark.json --stage keyframes --only 3,4
 
 Delete a file under outputs/<story>/ to redo just that piece, or use --only to redo scenes.
+
+The refs, keyframes, clips and smooth stages live in ``app/backend/pipeline/stages.py`` so
+the desktop app runs exactly the same code; this file is the command line around them.
 """
 import argparse
 import json
-import re
 import shutil
-import subprocess
 import sys
 import time
+from dataclasses import replace
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
+from app.backend.pipeline import ffmpeg_tools as FT  # noqa: E402
+from app.backend.pipeline import render_spec as RS  # noqa: E402
+from app.backend.pipeline import stages as ST  # noqa: E402
 from app.backend.pipeline import story_edit as E  # noqa: E402
 
-SIZES = {"9:16": (480, 832), "16:9": (832, 480), "1:1": (640, 640)}
-FINAL = {"9:16": (1080, 1920), "16:9": (1920, 1080), "1:1": (1080, 1080)}
-PAD_S = 0.35      # breath after each line
-XFADE_S = 0.4     # dissolve between scenes
+# Kept as module names because other code and the tests import them from here.
+SIZES, FINAL = RS.SIZES, RS.FINAL
+PAD_S, XFADE_S = RS.PAD_S, RS.XFADE_S
+KEY_RE = RS.KEY_RE
+run, ffprobe_duration = FT.run, FT.ffprobe_duration
+has_nvenc, video_codec_args = FT.has_nvenc, FT.video_codec_args
+
 STAGES = ["voice", "refs", "keyframes", "clips", "smooth", "music", "edit"]
-KEY_RE = re.compile(r"^[a-z0-9_-]{1,40}$")
 
 
 def log(msg: str):
     print(msg, flush=True)
 
 
-def ffprobe_duration(path: Path) -> float:
-    out = subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration",
-                          "-of", "csv=p=0", str(path)], capture_output=True, text=True, check=True)
-    return float(out.stdout.strip())
-
-
-def run(cmd, cwd=None):
-    r = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True)
-    if r.returncode != 0:
-        raise RuntimeError(f"{cmd[0]} failed:\n{r.stderr[-2500:]}")
-
-
-def has_nvenc() -> bool:
-    r = subprocess.run(["ffmpeg", "-hide_banner", "-encoders"], capture_output=True, text=True)
-    if "h264_nvenc" not in r.stdout:
-        return False
-    test = subprocess.run(["ffmpeg", "-v", "error", "-f", "lavfi", "-i", "color=s=256x256:d=0.1",
-                           "-c:v", "h264_nvenc", "-f", "null", "-"], capture_output=True)
-    return test.returncode == 0
-
-
-def video_codec_args(nvenc: bool, quality: int = 19) -> list[str]:
-    if nvenc:
-        return ["-c:v", "h264_nvenc", "-preset", "p5", "-rc", "vbr", "-cq", str(quality),
-                "-b:v", "0", "-pix_fmt", "yuv420p"]
-    return ["-c:v", "libx264", "-preset", "medium", "-crf", str(quality - 1), "-pix_fmt", "yuv420p"]
-
-
 # --------------------------------------------------------------------------- story
 
 
 def load_story(path: Path) -> dict:
-    story = json.loads(path.read_text(encoding="utf-8"))
-    chars = story.get("characters", {})
-    # v1 stories had one top-level "noah" description; treat it as a character.
-    if "noah" in story and "noah" not in chars:
-        chars["noah"] = {"description": story["noah"]}
-    for key in chars:
-        if not KEY_RE.match(key):
-            raise SystemExit(f"character key {key!r} must match {KEY_RE.pattern}")
-    story["characters"] = chars
+    """Read and validate a story file, returning the raw dict.
+
+    Validation is :func:`render_spec.story_to_spec`, so the command line and the app agree
+    on what a valid story is; its ValueError becomes the SystemExit a CLI should give.
+    """
+    story = json.loads(Path(path).read_text(encoding="utf-8"))
+    try:
+        spec = RS.story_to_spec(story)
+    except RS.SpecError as e:
+        raise SystemExit(str(e))
+    # v1 stories kept one top-level character; surface it the way callers expect.
+    story["characters"] = {k: {"description": c.description, "seed": c.seed}
+                           for k, c in spec.characters.items()}
     story.setdefault("consistency", "none")
-    if story["consistency"] not in ("none", "schnell", "kontext"):
-        raise SystemExit("consistency must be none, schnell or kontext")
-    if not story.get("scenes"):
-        raise SystemExit("story has no scenes")
     return story
 
 
 def fill(text: str, story: dict) -> str:
-    for key, c in story["characters"].items():
-        text = text.replace("{" + key + "}", c["description"])
+    """Replace ``{key}`` with that character's description (story-dict form)."""
+    for key, c in (story.get("characters") or {}).items():
+        description = c["description"] if isinstance(c, dict) else getattr(c, "description", c)
+        text = text.replace("{" + key + "}", description)
     return text
 
 
-def cast_of(scene: dict, story: dict) -> list[str]:
-    if "cast" in scene:
-        return [c for c in scene["cast"] if c in story["characters"]]
-    return [k for k in story["characters"] if "{" + k + "}" in scene["prompt"]]
+def spec_for(story: dict, steps: int | None = None) -> RS.RenderSpec:
+    spec = RS.story_to_spec(story)
+    if steps:
+        spec = replace(spec, clip=replace(spec.clip, steps=steps))
+    return spec
 
 
-def comfy():
-    from app.backend.services import comfyui_manager
-    if not comfyui_manager.start():
-        raise SystemExit("ComfyUI did not start (see app/runtime/comfyui/comfyui.log)")
-    from app.backend.pipeline.comfy_client import ComfyClient
-    c = ComfyClient()
-    c.free()  # each stage starts with the whole GPU
-    return c
-
-
-def wanted(i: int, dest: Path, only) -> bool:
-    """Render scene i? With --only, exactly those scenes (redone); otherwise only missing ones."""
-    return (i in only) if only else not dest.exists()
+def hooks() -> ST.Hooks:
+    return ST.Hooks(log=log)
 
 
 def _free_torch():
@@ -131,24 +102,23 @@ def _free_torch():
 # --------------------------------------------------------------------------- stages
 
 
-def stage_voice(story, out: Path, only=None, **_):
-    from app.backend.pipeline.kokoro_tts import KokoroTTSClient
+def stage_voice(spec: RS.RenderSpec, ws: ST.Workspace, only=None, **_):
     from app.backend.pipeline import whisper_client
-    audio = out / "audio"
+    from app.backend.pipeline.kokoro_tts import KokoroTTSClient
+    audio = ws.root / "audio"
     dur_file = audio / "durations.json"
     durs = json.loads(dur_file.read_text()) if dur_file.exists() else []
-    voice = story.get("voice", "bm_george")
     tts, redone = None, False
-    for i, sc in enumerate(story["scenes"], 1):
-        wav = audio / f"{i:02d}.wav"
-        if not wanted(i, wav, only) and len(durs) >= i:
+    for sc in spec.scenes:
+        wav = ws.audio(sc.index)
+        if not ST.wanted(sc.index, wav, only) and len(durs) >= sc.index:
             continue
-        tts = tts or KokoroTTSClient(voice=voice, speed=float(story.get("voice_speed", 1.0)),
-                                     lang="b" if voice.startswith("b") else "a")
-        _, dur = tts.generate(sc["narration"], str(wav))
-        durs = durs[:i - 1] + [round(dur, 3)] + durs[i:]
+        tts = tts or KokoroTTSClient(voice=spec.voice, speed=spec.voice_speed,
+                                     lang="b" if spec.voice.startswith("b") else "a")
+        _, dur = tts.generate(sc.narration, str(wav))
+        durs = durs[:sc.index - 1] + [round(dur, 3)] + durs[sc.index:]
         redone = True
-        log(f"  voice {i:02d}: {dur:.2f}s on {tts.device}")
+        log(f"  voice {sc.index:02d}: {dur:.2f}s on {tts.device}")
     dur_file.write_text(json.dumps(durs))
     tts = None
     _free_torch()
@@ -158,134 +128,55 @@ def stage_voice(story, out: Path, only=None, **_):
             log("  WARNING: faster-whisper is not installed; captions will be timed by word "
                 "length instead of by the voice (pip install faster-whisper)")
         else:
-            heard = [whisper_client.word_timestamps(str(audio / f"{i:02d}.wav"), "small.en")
-                     for i in range(1, len(story["scenes"]) + 1)]
+            heard = [whisper_client.word_timestamps(str(ws.audio(sc.index)), "small.en")
+                     for sc in spec.scenes]
             words_file.write_text(json.dumps(heard))
             log(f"  words: {sum(len(h) for h in heard)} timed on {whisper_client._device()[0]}")
     log(f"  total narration {sum(durs):.1f}s")
 
 
-def stage_refs(story, out: Path, only=None, **_):
-    if story["consistency"] == "none" or not story["characters"]:
+def stage_refs(spec: RS.RenderSpec, ws: ST.Workspace, only=None, **_):
+    ST.ensure_sheets(spec, ws, hooks())
+
+
+def stage_keyframes(spec: RS.RenderSpec, ws: ST.Workspace, only=None, **_):
+    sheets = ST.ensure_sheets(spec, ws, hooks())
+    ST.ensure_keyframes(spec, ws, hooks(), sheets=sheets, only=only)
+
+
+def stage_clips(spec: RS.RenderSpec, ws: ST.Workspace, only=None, **_):
+    durs = json.loads((ws.root / "audio" / "durations.json").read_text())
+    keyframes = {sc.index: ws.keyframe(sc.index) for sc in spec.scenes
+                 if ws.keyframe(sc.index).exists()}
+    ST.ensure_clips(spec, ws, hooks(), keyframes=keyframes, durations=durs, only=only)
+
+
+def stage_smooth(spec: RS.RenderSpec, ws: ST.Workspace, only=None, **_):
+    ST.ensure_smooth(spec, ws, hooks(), only=only)
+
+
+def stage_music(spec: RS.RenderSpec, ws: ST.Workspace, only=None, **_):
+    if not spec.music:
         return
-    from app.backend.pipeline.image_client import ImageClient
-    comfy()
-    img = ImageClient("schnell")
-    for key, ch in story["characters"].items():
-        dest = out / "refs" / f"{key}.png"
-        if dest.exists():
-            continue
-        prompt = (f"character reference sheet, single full-body view of {ch['description']}, "
-                  f"standing, facing the camera, neutral pose, plain soft light background, "
-                  f"{story['style']}")
-        t0 = time.time()
-        img.generate(prompt, dest, 768, 1344, seed=int(ch.get("seed", 7)))
-        log(f"  ref {key}: {time.time() - t0:.0f}s")
-
-
-def stage_keyframes(story, out: Path, only=None, **_):
-    mode = story["consistency"]
-    if mode == "none":
-        return
-    from app.backend.pipeline.image_client import ImageClient, keyframe_size
-    comfy()
-    w, h = keyframe_size(*SIZES[story.get("aspect_ratio", "9:16")])
-    clients = {}
-    if mode == "kontext":
-        log("  NOTE: FLUX.1 Kontext dev is licensed for non-commercial use only.")
-    for i, sc in enumerate(story["scenes"], 1):
-        dest = out / "keyframes" / f"{i:02d}.png"
-        if not wanted(i, dest, only):
-            continue
-        cast = cast_of(sc, story)
-        scene_text = fill(sc.get("keyframe", sc["prompt"]), story)
-        use = "kontext" if (mode == "kontext" and cast) else "schnell"
-        client = clients.setdefault(use, ImageClient(use))
-        seed = int(sc.get("keyframe_seed", 2000 + i))  # change it to re-roll one bad keyframe
-        t0 = time.time()
-        if use == "kontext":
-            prompt = (f"Place this exact character, keeping the face, hair, beard, body and "
-                      f"clothing identical, into a new scene: {scene_text}. "
-                      f"Vertical cinematic frame, {story['style']}")
-            client.generate(prompt, dest, w, h, seed=seed,
-                            reference=out / "refs" / f"{cast[0]}.png")
-        else:
-            client.generate(f"{scene_text}, {story['style']}", dest, w, h, seed=seed)
-        log(f"  keyframe {i:02d} ({use}{', ' + cast[0] if use == 'kontext' else ''}): "
-            f"{time.time() - t0:.0f}s")
-
-
-def last_frame(video: Path, dest: Path) -> Path:
-    run(["ffmpeg", "-y", "-v", "error", "-sseof", "-0.1", "-i", str(video), "-frames:v", "1",
-         "-update", "1", str(dest)])
-    return dest
-
-
-def stage_clips(story, out: Path, only=None, steps=20, **_):
-    from app.backend.pipeline.wan_client import WanVideoClient, frames_for_seconds
-    durs = json.loads((out / "audio" / "durations.json").read_text())
-    comfy()
-    wan = WanVideoClient(str(ROOT / "app/workflows/wan22_ti2v_5b_gguf.json"))
-    w, h = SIZES[story.get("aspect_ratio", "9:16")]
-    for i, sc in enumerate(story["scenes"], 1):
-        dest = out / "clips" / f"{i:02d}.mp4"
-        if not wanted(i, dest, only):
-            continue
-        prompt = fill(sc["prompt"], story) + ", " + story["style"]
-        start = None
-        if sc.get("continue", story.get("continue_from_previous", False)) and i > 1:
-            prev = out / "clips" / f"{i - 1:02d}.mp4"
-            if prev.exists():
-                start = last_frame(prev, out / "keyframes" / f"{i:02d}_from_prev.png")
-        if start is None and (out / "keyframes" / f"{i:02d}.png").exists():
-            start = out / "keyframes" / f"{i:02d}.png"
-        frames = frames_for_seconds(min(durs[i - 1] + PAD_S + XFADE_S, 5.0))
-        t0 = time.time()
-        path = wan.generate(prompt=prompt, output_dir=str(out / "clips" / "raw"), width=w, height=h,
-                            num_frames=frames, steps=steps, seed=1000 + i,
-                            start_image=str(start) if start else None)
-        Path(path).replace(dest)
-        (out / "smooth" / f"{i:02d}.mp4").unlink(missing_ok=True)  # stale once the clip changes
-        log(f"  clip {i:02d}: {frames} frames{' from keyframe' if start else ''} "
-            f"in {time.time() - t0:.0f}s")
-
-
-def stage_smooth(story, out: Path, only=None, **_):
-    if not story.get("smooth", True):
-        return
-    from app.backend.pipeline.smooth_client import SmoothClient
-    comfy()
-    sm = SmoothClient()
-    upscale = story.get("upscale", False)
-    for i in range(1, len(story["scenes"]) + 1):
-        src, dest = out / "clips" / f"{i:02d}.mp4", out / "smooth" / f"{i:02d}.mp4"
-        if not src.exists() or not wanted(i, dest, only):
-            continue
-        t0 = time.time()
-        sm.smooth(src, dest, src_fps=24.0, upscale=upscale)  # ESRGAN x2 adds ~7 min per clip on an RTX 4060
-        log(f"  smooth {i:02d}: 48 fps{' + ESRGAN x2' if upscale else ''} in {time.time() - t0:.0f}s")
-
-
-def stage_music(story, out: Path, only=None, **_):
-    if not story.get("music"):
-        return
-    dest = out / "music.flac"
+    dest = ws.root / "music.flac"
     if dest.exists():
         return
     from app.backend.pipeline.music_client import MusicClient
-    durs = json.loads((out / "audio" / "durations.json").read_text())
+    durs = json.loads((ws.root / "audio" / "durations.json").read_text())
     total = sum(d + PAD_S for d in durs)
-    comfy()
+    ST.connect(spec)
     t0 = time.time()
-    MusicClient().generate(story["music"], total + 2.0, dest, seed=int(story.get("music_seed", 42)))
+    MusicClient(spec.backend.comfyui_url).generate(spec.music, total + 2.0, dest,
+                                                   seed=spec.music_seed)
     log(f"  music: {total + 2:.0f}s of audio in {time.time() - t0:.0f}s")
 
 
-def stage_edit(story, out: Path, **_):
+def stage_edit(spec: RS.RenderSpec, ws: ST.Workspace, **_):
+    out = ws.root
     durs = json.loads((out / "audio" / "durations.json").read_text())
     n = len(durs)
-    fw, fh = FINAL[story.get("aspect_ratio", "9:16")]
-    smooth = all((out / "smooth" / f"{i:02d}.mp4").exists() for i in range(1, n + 1))
+    fw, fh = RS.final_size(spec.aspect_ratio)
+    smooth = all(ws.smooth(i).exists() for i in range(1, n + 1))
     fps = 48 if smooth else 24
     nvenc = has_nvenc()
     log(f"  edit: {n} scenes, {fps} fps, encoder {'NVENC (GPU)' if nvenc else 'libx264'}")
@@ -297,7 +188,7 @@ def stage_edit(story, out: Path, **_):
     # 1. Narration track: each line padded to its slot on the timeline.
     ins, graph = [], []
     for i, (_, length) in enumerate(E.slots(durs, PAD_S)):
-        ins += ["-i", str(out / "audio" / f"{i + 1:02d}.wav")]
+        ins += ["-i", str(ws.audio(i + 1))]
         graph.append(f"[{i}:a]aresample=48000,apad=whole_dur={length:.3f},"
                      f"atrim=duration={length:.3f}[a{i}]")
     graph.append("".join(f"[a{i}]" for i in range(n)) + f"concat=n={n}:v=0:a=1[aout]")
@@ -308,7 +199,7 @@ def stage_edit(story, out: Path, **_):
     seg_lens = E.segment_lengths(durs, PAD_S, XFADE_S)
     segs = []
     for i in range(1, n + 1):
-        clip = out / ("smooth" if smooth else "clips") / f"{i:02d}.mp4"
+        clip = ws.smooth(i) if smooth else ws.clip(i)
         seg = seg_dir / f"{i:02d}.mp4"
         vf = E.segment_filter(ffprobe_duration(clip), seg_lens[i - 1], fw, fh, fps)
         run(["ffmpeg", "-y", "-i", str(clip), "-vf", vf, "-an", "-t", f"{seg_lens[i - 1]:.3f}",
@@ -325,8 +216,8 @@ def stage_edit(story, out: Path, **_):
     words_file = out / "audio" / "words.json"
     heard = json.loads(words_file.read_text()) if words_file.exists() else [[] for _ in durs]
     words = []
-    for (start, _), sc, d, h in zip(E.slots(durs, PAD_S), story["scenes"], durs, heard):
-        words += E.align_words(sc["narration"], h, start, d)
+    for (start, _), sc, d, h in zip(E.slots(durs, PAD_S), spec.scenes, durs, heard):
+        words += E.align_words(sc.narration, h, start, d)
     (out / "captions.ass").write_text(E.build_ass(E.chunk_words(words, 3), fw, fh),
                                       encoding="utf-8")
     (out / "captions_words.json").write_text(json.dumps(words, indent=1))
@@ -348,7 +239,8 @@ def stage_edit(story, out: Path, **_):
 
 
 STAGE_FN = {"voice": stage_voice, "refs": stage_refs, "keyframes": stage_keyframes,
-            "clips": stage_clips, "smooth": stage_smooth, "music": stage_music, "edit": stage_edit}
+            "clips": stage_clips, "smooth": stage_smooth, "music": stage_music,
+            "edit": stage_edit}
 
 
 def main():
@@ -358,18 +250,19 @@ def main():
     ap.add_argument("--stage", choices=STAGES + ["all"], default="all")
     ap.add_argument("--only", type=lambda s: [int(x) for x in s.split(",")],
                     help="scene numbers to (re)do, e.g. 3,4")
-    ap.add_argument("--steps", type=int, default=20, help="Wan sampling steps")
+    ap.add_argument("--steps", type=int, default=None, help="Wan sampling steps")
     ap.add_argument("--out", help="output folder (default outputs/<story name>)")
     args = ap.parse_args()
     story_path = Path(args.story).resolve()
     story = load_story(story_path)
-    out = Path(args.out).resolve() if args.out else ROOT / "outputs" / story_path.stem
-    for d in ("audio", "refs", "keyframes", "clips", "smooth"):
-        (out / d).mkdir(parents=True, exist_ok=True)
+    spec = spec_for(story, args.steps)
+    root = Path(args.out).resolve() if args.out else ROOT / "outputs" / story_path.stem
+    ws = ST.Workspace(root)
+    ws.mkdirs()
     t0 = time.time()
     for st in (STAGES if args.stage == "all" else [args.stage]):
         log(f"[{st}]")
-        STAGE_FN[st](story, out, only=args.only, steps=args.steps)
+        STAGE_FN[st](spec, ws, only=args.only)
     log(f"done in {time.time() - t0:.0f}s")
 
 

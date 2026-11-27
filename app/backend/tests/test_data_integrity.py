@@ -35,6 +35,22 @@ def check(name: str, condition: bool, detail: str = ""):
     print(f"{'PASS' if condition else 'FAIL'}: {name}" + (f" — {detail}" if detail and not condition else ""))
 
 
+def _failures() -> str:
+    """Name the checks that failed, for the asserts that close each test.
+
+    check() records a failure in FAIL and prints it, but only the __main__
+    block below ever turned a non-empty FAIL into a non-zero exit status. Run
+    any other way — pytest, or anything that imports this module and calls the
+    test functions — every test passed no matter what broke, because not one
+    of them asserted. The assert at the end of each test closes that hole.
+
+    FAIL is module-level and cumulative, so a failure in an earlier test trips
+    the later ones too. That is deliberate: over-reporting a real failure is
+    better than the silence it replaces.
+    """
+    return "failed checks: " + ", ".join(FAIL)
+
+
 def _make_project(db, name="p") -> Project:
     p = Project(id=str(uuid.uuid4()), name=name, topic="t", script="original script")
     db.add(p)
@@ -72,6 +88,8 @@ def test_version_num_survives_deletion():
     finally:
         db.close()
 
+    assert not FAIL, _failures()
+
 
 def test_project_delete_cascades_versions():
     """Version rows used to survive their parent project, dangling forever."""
@@ -88,6 +106,8 @@ def test_project_delete_cascades_versions():
         check("deleting a project cascades to its scenes", scenes_left == 0, f"{scenes_left} orphan scenes")
     finally:
         db.close()
+
+    assert not FAIL, _failures()
 
 
 def test_recover_orphaned_items():
@@ -115,6 +135,8 @@ def test_recover_orphaned_items():
     finally:
         db.close()
 
+    assert not FAIL, _failures()
+
 
 def test_cancellation_is_observed_across_sessions():
     """cancel() commits from another session; the pipeline must actually see it."""
@@ -134,6 +156,8 @@ def test_cancellation_is_observed_across_sessions():
     check("_is_cancelled sees a cancel committed by another session",
           before is False and after is True, f"before={before} after={after}")
 
+    assert not FAIL, _failures()
+
 
 def test_restore_backs_up_current_state():
     """Restore overwrote live work in place with no way back."""
@@ -152,8 +176,10 @@ def test_restore_backs_up_current_state():
     with TestClient(app) as client:
         resp = client.post(f"/projects/{pid}/versions/{vid}/restore")
         check("restore endpoint succeeds", resp.status_code == 200, f"{resp.status_code} {resp.text[:200]}")
-        if resp.status_code != 200:
-            return
+        # A non-200 leaves no body worth inspecting. The early `return`
+        # that stood here also hid the failure from any runner that only
+        # watches for exceptions, so assert instead of returning.
+        assert not FAIL, _failures()
         body = resp.json()
         check("restore reports the auto-backup it created", "backup_version" in body, str(body))
 
@@ -172,6 +198,8 @@ def test_restore_backs_up_current_state():
                   snap.get("scenes", [{}])[0].get("prompt") == "original prompt", str(snap.get("scenes")))
     finally:
         db.close()
+
+    assert not FAIL, _failures()
 
 
 if __name__ == "__main__":

@@ -10,6 +10,9 @@
   "resolution": "1080p",
   "subtitles": true,
   "music_mood": "upbeat_energetic",
-  "post_processing": ["color_grade_vibrant"],
+  "style_suffix": "bold vibrant colors, energetic composition, social media aesthetic, eye-catching subject, high saturation",
+  "post_processing": [
+    "color_grade_vibrant"
+  ],
   "icon": "short.svg"
 }

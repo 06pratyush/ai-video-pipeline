@@ -11,7 +11,11 @@ class Scene(Base):
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     project_id = Column(String, ForeignKey("projects.id"), nullable=False)
     index = Column(Integer, nullable=False)
-    prompt = Column(Text, nullable=True)
+    prompt = Column(Text, nullable=True)       # what the keyframe shows (the composition)
+    # What Wan animates: motion and camera only. Separate from `prompt` because with a
+    # keyframe leading, the still already carries the subject and the style.
+    motion_prompt = Column(Text, nullable=True)
+    cast = Column(Text, nullable=True)         # JSON list of character keys in this scene
     status = Column(String, default="pending")  # pending | generating | done | error | locked
     video_path = Column(String, nullable=True)
     thumbnail_path = Column(String, nullable=True)

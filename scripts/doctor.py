@@ -4,7 +4,7 @@
 
 Exit code 0 only when every required check passes. Checks:
   * backend venv: PyTorch sees CUDA (Kokoro), CTranslate2 sees CUDA (faster-whisper)
-  * ComfyUI venv: PyTorch sees CUDA; custom nodes present
+  * ComfyUI venv: PyTorch sees CUDA; the catalog's custom nodes present at their pinned commits
   * every model file in installer/catalog.json for the v2 stack, at its exact size
   * ComfyUI answers on 127.0.0.1 only, and knows every node the v2 workflows use
   * FFmpeg can encode with NVENC (GPU)
@@ -16,9 +16,13 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 COMFY = ROOT / "app" / "runtime" / "comfyui"
 V2_MODELS = ["wan2.2-ti2v-5b", "flux-schnell", "flux-kontext", "ace-step-3.5b", "rife-esrgan"]
-NODES = ["ComfyUI-GGUF", "ComfyUI-Frame-Interpolation"]
+
+# The custom nodes and the commits they are pinned at come from installer/catalog.json, the
+# same source scripts/setup_nodes.py installs from -- a second list here would drift from it.
+from setup_nodes import catalog_nodes, installed_commit  # noqa: E402
 
 results: list[tuple[str, bool, str, bool]] = []
 
@@ -57,8 +61,19 @@ def main() -> int:
                        capture_output=True, text=True)
     check("ComfyUI torch CUDA", r.returncode == 0 and r.stdout.strip().endswith("True"),
           r.stdout.strip() or r.stderr.strip()[-120:])
-    for node in NODES:
-        check(f"custom node {node}", (COMFY / "custom_nodes" / node).is_dir())
+    for node in catalog_nodes():
+        d = COMFY / "custom_nodes" / node["dir"]
+        pinned = node["commit"]
+        at = installed_commit(d) if d.is_dir() else ""
+        if not d.is_dir():
+            detail = "not installed (run scripts/setup_nodes.py)"
+        elif at == pinned:
+            detail = f"@ {pinned[:12]}"
+        elif at:
+            detail = f"@ {at[:12]}, pinned {pinned[:12]} (run scripts/setup_nodes.py)"
+        else:
+            detail = f"not a git checkout, cannot confirm {pinned[:12]}"
+        check(f"custom node {node['dir']}", at == pinned, detail)
 
     # Models at exact size.
     catalog = json.loads((ROOT / "installer" / "catalog.json").read_text(encoding="utf-8"))

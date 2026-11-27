@@ -105,6 +105,9 @@ def import_skill(skill: dict):
     skill.setdefault("subtitles", False)
     skill.setdefault("music_mood", "ambient_score")
     skill.setdefault("post_processing", [])
+    # The look applied to every keyframe. Read by the keyframe stage, so an imported skill
+    # without one must still render — it just gets no style of its own.
+    skill.setdefault("style_suffix", "")
     skill.setdefault("description", "")
     skill.setdefault("icon", f"{skill_id}.svg")
 

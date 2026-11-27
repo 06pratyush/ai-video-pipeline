@@ -4,6 +4,10 @@ pydantic>=2.0.0
 sqlalchemy>=2.0.0
 requests>=2.31.0
 python-multipart>=0.0.9
+# Tests only: fastapi.testclient.TestClient, used by
+# app/backend/tests/test_data_integrity.py, is built on httpx. It was a
+# silent prerequisite of the test suite until the Tests workflow was added.
+httpx>=0.27.0
 psutil>=5.9.0
 soundfile>=0.12.1
 numpy>=1.24.0

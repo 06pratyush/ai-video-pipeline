@@ -10,6 +10,9 @@
   "resolution": "1080p",
   "subtitles": true,
   "music_mood": "upbeat",
-  "post_processing": ["color_grade_bright"],
+  "style_suffix": "clean explainer-style visualization, bright lighting, motion graphics aesthetic, clear subject focus, high contrast",
+  "post_processing": [
+    "color_grade_bright"
+  ],
   "icon": "explainer.svg"
 }

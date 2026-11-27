@@ -10,6 +10,9 @@
   "resolution": "1080p",
   "subtitles": false,
   "music_mood": "corporate",
-  "post_processing": ["color_grade_commercial"],
+  "style_suffix": "product hero shot, dramatic studio lighting, shallow depth of field, luxury aesthetic",
+  "post_processing": [
+    "color_grade_commercial"
+  ],
   "icon": "product.svg"
 }
