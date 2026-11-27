@@ -35,7 +35,7 @@
 - [GAP-03]: No auth on the daemon. Acceptable only because it binds to 127.0.0.1; CORS is currently `allow_origins=["*"]` and should be narrowed to the Electron origin.
 - [GAP-04]: CLOSED in v2 commit 1 — a full render (Wan2.2 5B GGUF in ComfyUI, Kokoro, FFmpeg) is verified on an RTX 4060 Laptop (8 GB). Still unverified on Linux/macOS and on GPUs below 8 GB.
 - [GAP-05]: Cancellation takes effect at scene boundaries, not mid-clip; a single long clip render must finish before the cancel is observed.
-- [GAP-06]: `httpx` is required to run the test suite but is not declared in `requirements.txt` (test-only dependency).
+- [GAP-06]: CLOSED in v2.1 — `httpx` is declared in `requirements.txt`, and `.github/workflows/tests.yml` installs it so the suites run in CI.
 
 ## 5. IMMUTABLE EXECUTION TIMELINE & BUG LOG
 
