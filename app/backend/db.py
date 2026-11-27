@@ -46,6 +46,10 @@ def _run_migrations():
             last_hit DATETIME
         )""",
         "CREATE INDEX IF NOT EXISTS ix_cache_entries_cache_key ON cache_entries(cache_key)",
+        # v2.1: recurring characters, and the composition/motion split on a scene.
+        "ALTER TABLE projects ADD COLUMN characters TEXT",
+        "ALTER TABLE scenes ADD COLUMN motion_prompt TEXT",
+        'ALTER TABLE scenes ADD COLUMN "cast" TEXT',  # quoted: CAST is a SQL keyword
     ]
     with engine.connect() as conn:
         for sql in migrations:

@@ -10,6 +10,9 @@
   "resolution": "1080p",
   "subtitles": true,
   "music_mood": "news_sting",
-  "post_processing": ["color_grade_news"],
+  "style_suffix": "photojournalistic style, documentary photography, natural available light, candid composition, current events imagery",
+  "post_processing": [
+    "color_grade_news"
+  ],
   "icon": "news.svg"
 }

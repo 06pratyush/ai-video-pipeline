@@ -23,71 +23,113 @@
     {
       "narration": "Long ago, the world had filled with violence, and people had forgotten God.",
       "prompt": "an ancient walled city at dusk, crowds of people arguing and shoving in a torch-lit market street, {noah} watching sadly from a doorway, torches flickering, people moving, slow push-in camera",
-      "cast": ["noah"]
+      "motion": "the crowd shoves and argues, torches flicker, the old man watches without moving, slow push-in",
+      "cast": [
+        "noah"
+      ]
     },
     {
       "narration": "But one man still walked with God. His name was Noah.",
       "prompt": "{noah} kneeling in prayer on a quiet green hill at golden sunset, wind moving the grass and his robe, he slowly lifts his face to the sky, slow orbiting camera",
-      "cast": ["noah"]
+      "motion": "wind moves the grass and his robe, he slowly lifts his face to the sky, slow orbit",
+      "cast": [
+        "noah"
+      ]
     },
     {
       "narration": "One night, God spoke to him. A great flood is coming. Build an ark.",
       "prompt": "{noah} standing alone under a starry night sky, golden light breaks through swirling clouds and shines on his face, his eyes widen in awe, camera slowly tilting up",
-      "cast": ["noah"]
+      "motion": "golden light breaks through the swirling clouds onto his face, his eyes widen, camera tilts up slowly",
+      "cast": [
+        "noah"
+      ]
     },
     {
       "narration": "So Noah obeyed. Day after day, he and his sons cut and hammered wood.",
       "prompt": "{noah} and three young men swinging hammers on huge wooden beams of a giant boat frame in a sunny valley, sawdust drifting in the air, camera slowly tracking sideways",
-      "cast": ["noah"]
+      "motion": "the men swing their hammers, sawdust drifts through the air, camera tracks sideways slowly",
+      "cast": [
+        "noah"
+      ]
     },
     {
       "narration": "His neighbours laughed at the giant boat on dry land. Noah kept building.",
       "prompt": "villagers laughing and pointing at an enormous half-built wooden boat on dry dusty land, {noah} calmly carrying a long plank past them, low angle wide shot, gentle camera drift",
-      "cast": ["noah"]
+      "motion": "the villagers laugh and point, the old man walks past them carrying a plank, gentle camera drift",
+      "cast": [
+        "noah"
+      ]
     },
     {
       "narration": "Then the animals came, two by two, from every corner of the earth.",
       "prompt": "pairs of elephants, giraffes, lions and zebras walking in a long line up a wooden ramp into {ark}, birds flying overhead, golden afternoon light, dust in the air, slow sweeping crane shot",
       "keyframe": "a long line of animals walking in pairs up a wooden ramp into {ark}: two grey elephants, two tall giraffes, two lions, birds flying overhead, golden afternoon light, dust in the air",
       "keyframe_seed": 3006,
-      "cast": ["ark"]
+      "motion": "the animals walk steadily up the ramp, birds cross overhead, dust drifts, slow sweeping crane move",
+      "cast": [
+        "ark"
+      ]
     },
     {
       "narration": "Noah, his family and every creature went inside, and the great door closed.",
       "prompt": "the huge wooden door of the ark slowly swinging closed from inside, {noah} and his family looking back through the narrowing gap at darkening clouds, warm lantern light inside",
-      "cast": ["noah"]
+      "motion": "the great wooden door swings slowly closed, the gap narrows, lantern light flickers, camera holds steady",
+      "cast": [
+        "noah",
+        "ark"
+      ]
     },
     {
       "narration": "The sky turned black, and the rain began. For forty days and forty nights.",
       "prompt": "dark storm clouds rolling over {ark}, heavy rain pouring down, lightning flashing across the sky, water rising around the wooden hull, dramatic wide shot, camera slowly pushing in",
-      "cast": ["ark"]
+      "motion": "rain pours down, lightning flashes, water rises against the hull, clouds roll past, slow push-in",
+      "cast": [
+        "ark"
+      ]
     },
     {
       "narration": "The waters rose over the hills and mountains, but the ark floated safely on.",
       "prompt": "{ark} floating on an endless stormy ocean, big rolling waves lifting it gently, mountain peaks disappearing under water, rain and mist, aerial camera slowly circling",
       "keyframe": "{ark} floating low in the water on a vast grey stormy ocean, its hull half submerged in big rolling waves with white foam all around it, the tips of mountain peaks poking out of the flood water in the distance, rain and mist, wide aerial view",
       "keyframe_seed": 3009,
-      "cast": ["ark"]
+      "motion": "waves lift and lower the boat, rain and mist blow across, camera circles slowly",
+      "cast": [
+        "ark"
+      ]
     },
     {
       "narration": "Inside, Noah cared for every animal, waiting, and trusting God.",
       "prompt": "cozy wooden interior of the ark lit by swaying warm lanterns, {noah} gently feeding an elephant an apple, giraffes, rabbits and parrots on wooden decks around him, hay on the floor, slow dolly in",
-      "cast": ["noah"]
+      "motion": "the lanterns sway, the elephant takes the apple, the animals shift and settle, slow dolly in",
+      "cast": [
+        "noah"
+      ]
     },
     {
       "narration": "At last the rain stopped. Noah sent out a dove, and it came back with an olive leaf.",
       "prompt": "a white dove flying toward the camera over calm shining water at sunrise, a green olive leaf in its beak, {noah} smiling and reaching out from the ark's small window behind, soft morning light",
-      "cast": ["noah"]
+      "motion": "the dove flies toward the camera with beating wings, the water shimmers, he reaches out, camera holds",
+      "cast": [
+        "noah",
+        "ark"
+      ]
     },
     {
       "narration": "The ark came to rest, and Noah's family stepped onto dry ground once more.",
       "prompt": "{noah} and his family stepping down onto green grass on a mountainside, animals running out behind them into the sunlight, joyful, wide shot, gentle camera pull back",
-      "cast": ["noah"]
+      "motion": "they step down onto the grass, animals run out behind them into the sunlight, gentle pull back",
+      "cast": [
+        "noah"
+      ]
     },
     {
       "narration": "And God set a rainbow in the sky, a promise that the flood would never return.",
       "prompt": "{noah} and his family on a green mountain looking up in wonder at a brilliant rainbow arching across a clear blue sky, the wooden ark resting behind them, camera slowly rising",
-      "cast": ["noah"]
+      "motion": "they look up in wonder, the rainbow brightens, clouds drift, camera rises slowly",
+      "cast": [
+        "noah",
+        "ark"
+      ]
     }
   ]
 }

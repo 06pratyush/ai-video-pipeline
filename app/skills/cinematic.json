@@ -10,6 +10,11 @@
   "resolution": "1080p",
   "subtitles": false,
   "music_mood": "emotional_score",
-  "post_processing": ["color_grade_cinematic", "film_grain", "letterbox"],
+  "style_suffix": "cinematic film scene, golden hour lighting, anamorphic lens flare, atmospheric haze, film grain, dramatic composition, 35mm film aesthetic",
+  "post_processing": [
+    "color_grade_cinematic",
+    "film_grain",
+    "letterbox"
+  ],
   "icon": "cinematic.svg"
 }

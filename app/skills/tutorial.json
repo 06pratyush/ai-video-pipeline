@@ -10,6 +10,9 @@
   "resolution": "1080p",
   "subtitles": true,
   "music_mood": "calm",
-  "post_processing": ["color_grade_clean"],
+  "style_suffix": "instructional demonstration, clean bright background, clear subject focus, professional lighting, educational aesthetic",
+  "post_processing": [
+    "color_grade_clean"
+  ],
   "icon": "tutorial.svg"
 }

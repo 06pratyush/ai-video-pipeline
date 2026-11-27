@@ -257,139 +257,109 @@ def _run_pipeline(queue_item_id: str, project_id: str):
         # once the LLM has left the GPU. MusicGen remains the fallback.
         music_mood = ((skill_data.get("music_mood") if skill_data else None) or "ambient_score")
 
-        # ── Step 4: Generate video clips ─────────────────────────────
-        # Unload LLM from VRAM before loading video model
-        from app.backend.services import vram_manager, generation_cache
-        vram_manager.prepare_for_video(llm_name)
+        # ── Step 4: keyframes and clips, on the path the CLI also uses ───
+        # Until v2.1 this was a second implementation of the same stages: it had no
+        # character sheets, and it passed scene 1's *whole keyframe* as the reference for
+        # every later scene, which bled entire compositions from one shot into the next.
+        # Both surfaces now call app.backend.pipeline.stages.
+        import shutil as _shutil
+
+        from app.backend.pipeline import stages
+        from app.backend.services import comfyui_manager, generation_cache, project_spec
+        from app.backend.services import vram_manager
+
+        vram_manager.prepare_for_video(llm_name)   # the LLM leaves the GPU before Wan arrives
         free_vram = vram_manager.get_free_vram_mb()
 
         skill_resolution = (skill_data.get("resolution", "1080p") if skill_data else "1080p")
-
         scenes = db.query(Scene).filter_by(project_id=project_id).order_by(Scene.index).all()
-        from app.backend.pipeline.wan_client import (
-            WanVideoClient, DEFAULT_WORKFLOW, frames_for_seconds,
-        )
-        workflow_path = DEFAULT_WORKFLOW
 
-        video_clips = []
-        try:
-            from app.backend.services import comfyui_manager
-            comfyui_manager.start()
-            wan = WanVideoClient(workflow_path)
-        except FileNotFoundError:
-            wan = None
+        spec = project_spec.spec_from_project(project, scenes, skill_data, render_opts,
+                                              free_vram_mb=free_vram)
+        ws = stages.Workspace(base_dir)
+        ws.mkdirs()
 
-        # Render clips in the skill's aspect ratio (cropping 16:9 to 9:16 later
-        # throws away 70% of the frame). 480p-class sizes fit an 8 GB GPU.
-        aspect = (skill_data.get("aspect_ratio", "16:9") if skill_data else "16:9")
-        clip_w, clip_h = {"9:16": (480, 832), "1:1": (640, 640)}.get(aspect, (832, 480))
-        clip_seconds = audio_duration / max(len(scenes), 1)
-        clip_frames = frames_for_seconds(min(max(clip_seconds, 2.0), 5.0))
-
-        # Smart model routing based on free VRAM
         model_id, routing_warning = vram_manager.route_video_model("wan2.2-ti2v-5b", free_vram)
         if routing_warning:
-            _emit(project_id, f"scene_0", 0.29, "running", f"Note: {routing_warning}")
+            _emit(project_id, "scene_0", 0.29, "running", f"Note: {routing_warning}")
 
-        # ── v2: keyframes for consistent characters ───────────────────
-        # Scene 1 is drawn by FLUX schnell; with "kontext" every later scene is drawn by
-        # FLUX Kontext *from scene 1's keyframe*, so the same characters and look carry
-        # through. Wan2.2 then animates each keyframe (image-to-video).
-        from app.backend.pipeline import image_client
-        consistency = render_opts.get("consistency")
-        if consistency is None:
-            consistency = "schnell" if image_client.available("schnell") else "none"
-        if consistency == "kontext" and not image_client.available("kontext"):
-            consistency = "schnell" if image_client.available("schnell") else "none"
-        keyframes: dict[int, str] = {}
-        if wan is not None and consistency != "none":
-            from app.backend.pipeline.comfy_client import ComfyClient
-            ComfyClient().free()
-            kw, kh = image_client.keyframe_size(clip_w, clip_h)
-            style = (skill_data.get("style_suffix") or "") if skill_data else ""
-            first_key: str | None = None
-            clients: dict[str, image_client.ImageClient] = {}
-            for i, scene in enumerate(scenes):
-                _abort_if_cancelled(queue_item_id)
-                if scene.status == "locked" and scene.video_path and Path(scene.video_path).exists():
-                    continue
-                _emit(project_id, f"keyframe_{i+1}", 0.25 + 0.05 * i / max(len(scenes), 1),
-                      "running", f"Drawing keyframe {i+1}/{len(scenes)}...")
-                dest = scenes_dir / f"key_{i:02d}.png"
-                use = "kontext" if (consistency == "kontext" and first_key) else "schnell"
-                try:
-                    client = clients.setdefault(use, image_client.ImageClient(use))
-                    text = ", ".join(t for t in (scene.prompt or "", style) if t)
-                    if use == "kontext":
-                        text = ("Keep the same characters, faces, clothing and art style as this "
-                                f"image, in a new scene: {text}")
-                        client.generate(text, dest, kw, kh, seed=(scene.seed or 0) + 2000,
-                                        reference=first_key)
-                    else:
-                        client.generate(text, dest, kw, kh, seed=(scene.seed or 0) + 2000)
-                    keyframes[i] = str(dest)
-                    first_key = first_key or str(dest)
-                except Exception as e:
-                    print(f"[QUEUE] Keyframe {i+1} failed (clip falls back to text-only): {e}")
-            ComfyClient().free()
+        by_index = {i: s for i, s in enumerate(scenes, 1)}
+        cache_model = f"{model_id}+{spec.keyframe_engine}"
 
-        for i, scene in enumerate(scenes):
-            # Cancellation is checked per scene: scene generation is the long pole,
-            # so this is the granularity at which a cancel can actually take effect.
-            _abort_if_cancelled(queue_item_id)
+        def _record(kind: str, index: int, path):
+            """Persist what a stage produced; a finished clip becomes the scene's video."""
+            scene = by_index.get(index)
+            if kind == "clip" and scene is not None:
+                scene.video_path = str(path)
+                scene.status = "done"
+                scene.model_used = model_id
+                db.commit()
+                generation_cache.put(scene.prompt or "", scene.seed, cache_model,
+                                     skill_resolution, str(path))
 
+        def _progress(stage: str, fraction: float, message: str):
+            base = {"refs": 0.24, "keyframes": 0.26, "clips": 0.30, "smooth": 0.70}.get(stage, 0.3)
+            span = {"refs": 0.02, "keyframes": 0.04, "clips": 0.40, "smooth": 0.04}.get(stage, 0.1)
+            _emit(project_id, stage, base + span * fraction, "running", message)
+
+        hooks = stages.Hooks(
+            log=lambda m: print(f"[QUEUE]{m}"),
+            progress=_progress,
+            cancelled=lambda: _is_cancelled(queue_item_id),
+            on_artifact=_record,
+        )
+
+        # A locked scene, or one already in the cache, is placed into the workspace so the
+        # stages skip it. Resumability here is the same file-existence rule as the CLI's,
+        # which is why the cache can feed it without the stages knowing a cache exists.
+        for i, scene in by_index.items():
+            dest = ws.clip(i)
+            if dest.exists():
+                continue
             if scene.status == "locked" and scene.video_path and Path(scene.video_path).exists():
-                video_clips.append(scene.video_path)
+                _shutil.copy2(scene.video_path, dest)
                 continue
-
-            prog = 0.3 + (0.4 * i / max(len(scenes), 1))
-
-            # ── Cache check ───────────────────────────────────────────
-            cache_model = f"{model_id}+{consistency}"
-            cache_hit = generation_cache.get(
-                scene.prompt or "", scene.seed, cache_model, skill_resolution
-            )
-            if cache_hit:
-                dest = str(scenes_dir / f"scene_{i:02d}_cached.mp4")
-                clip_path = generation_cache.copy_cached(cache_hit, dest)
-                scene.video_path = clip_path
-                scene.status = "done"
+            hit = generation_cache.get(scene.prompt or "", scene.seed, cache_model,
+                                       skill_resolution)
+            if hit:
+                generation_cache.copy_cached(hit, str(dest))
+                scene.video_path, scene.status = str(dest), "done"
                 db.commit()
-                video_clips.append(clip_path)
-                _emit(project_id, f"scene_{i+1}", prog, "running",
-                      f"Scene {i+1}/{len(scenes)} — loaded from cache")
-                continue
+                _emit(project_id, f"scene_{i}", 0.3, "running",
+                      f"Scene {i}/{len(scenes)} — loaded from cache")
 
-            _emit(project_id, f"scene_{i+1}", prog, "running",
-                  f"Generating scene {i+1}/{len(scenes)}...")
-            if wan is None:
-                scene.status = "error"
-                scene.error_message = "ComfyUI workflow not found"
-                db.commit()
-                continue
+        comfy_ready = True
+        try:
+            comfyui_manager.start()
+        except Exception as e:  # noqa: BLE001 — no ComfyUI must not look like a crash
+            print(f"[QUEUE] ComfyUI unavailable: {e}")
+            comfy_ready = False
+
+        # The app narrates the whole script in one pass, so every scene gets an equal share
+        # of it. (Per-line narration, as the CLI does, is a later change.)
+        durations = [audio_duration / max(len(scenes), 1)] * len(scenes)
+        video_clips: list[str] = []
+        gpu_smoothed = False
+        if comfy_ready:
             try:
-                clip_path = wan.generate(
-                    prompt=scene.prompt or "",
-                    output_dir=str(scenes_dir),
-                    width=clip_w,
-                    height=clip_h,
-                    num_frames=clip_frames,
-                    seed=scene.seed,
-                    start_image=keyframes.get(i),
-                )
-                scene.video_path = clip_path
-                scene.status = "done"
+                sheets = stages.ensure_sheets(spec, ws, hooks)
+                keyframes = stages.ensure_keyframes(spec, ws, hooks, sheets=sheets)
+                clips = stages.ensure_clips(spec, ws, hooks, keyframes=keyframes,
+                                            durations=durations)
+                video_clips = [str(p) for p in clips.values() if Path(p).exists()]
+                smoothed = stages.ensure_smooth(spec, ws, hooks)
+                if smoothed and len(smoothed) == len(video_clips):
+                    video_clips, gpu_smoothed = [str(p) for p in smoothed.values()], True
+            except stages.Cancelled:
+                raise _Cancelled()
+            except Exception as e:  # noqa: BLE001
+                print(f"[QUEUE] Render stage failed: {e}")
+                for scene in scenes:
+                    if scene.status != "done":
+                        scene.status, scene.error_message = "error", str(e)
                 db.commit()
-                video_clips.append(clip_path)
-                # Store in cache for future runs
-                generation_cache.put(
-                    scene.prompt or "", scene.seed, cache_model, skill_resolution, clip_path
-                )
-            except Exception as e:
-                scene.status = "error"
-                scene.error_message = str(e)
-                db.commit()
-                print(f"[QUEUE] Scene {i+1} failed: {e}")
+        if not video_clips:
+            video_clips = [str(ws.clip(i)) for i in by_index if ws.clip(i).exists()]
 
         # ── Step 5: Merge clips ───────────────────────────────────────
         _abort_if_cancelled(queue_item_id)
@@ -397,27 +367,8 @@ def _run_pipeline(queue_item_id: str, project_id: str):
         if not video_clips:
             raise RuntimeError("No video clips generated")
 
-        # ── v2: smooth each clip on the GPU (RIFE 48 fps + optional ESRGAN x2) ──
         want_interp = render_opts.get("interpolation", True)
         want_upscale = render_opts.get("upscaling", False)
-        gpu_smoothed = False
-        if want_interp and wan is not None:
-            try:
-                from app.backend.pipeline.smooth_client import SmoothClient
-                from app.backend.pipeline.comfy_client import ComfyClient
-                ComfyClient().free()
-                smoother = SmoothClient()
-                smoothed = []
-                for i, clip in enumerate(video_clips):
-                    _abort_if_cancelled(queue_item_id)
-                    _emit(project_id, "interpolating", 0.70 + 0.04 * i / len(video_clips), "running",
-                          f"Smoothing clip {i+1}/{len(video_clips)} to 48 fps on the GPU...")
-                    out = scenes_dir / f"smooth_{i:02d}.mp4"
-                    smoothed.append(str(smoother.smooth(clip, out, 24.0, upscale=want_upscale)))
-                video_clips, gpu_smoothed = smoothed, True
-            except Exception as e:
-                print(f"[QUEUE] GPU smoothing failed, using CPU interpolation instead: {e}")
-
         # ── v2: background music on the GPU (ACE-Step), MusicGen as fallback ──
         if want_music:
             _emit(project_id, "music", 0.75, "running", "Generating background music...")
@@ -425,7 +376,7 @@ def _run_pipeline(queue_item_id: str, project_id: str):
             try:
                 from app.backend.pipeline.music_client import MusicClient
                 from app.backend.pipeline.comfy_client import ComfyClient
-                if wan is None or not ComfyClient().is_up():
+                if not comfy_ready or not ComfyClient().is_up():
                     raise RuntimeError("ComfyUI is not running")
                 ComfyClient().free()
                 music_path = str(MusicClient().generate(music_mood, audio_duration + 1.0, music_out))

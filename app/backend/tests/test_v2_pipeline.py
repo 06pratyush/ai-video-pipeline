@@ -74,8 +74,17 @@ def test_image_modes():
         raise AssertionError("kontext without a reference must fail")
     except ValueError:
         pass
-    wf = image_client.build_workflow(tpl, "kontext", "x", 770, 1350, 1, reference="aivs_r.png")
+    wf = image_client.build_workflow(tpl, "kontext", "x", 770, 1350, 1, references="aivs_r.png")
     assert wf["ref"]["inputs"]["image"] == "aivs_r.png"
+    # A bare path and a one-item sequence mean the same thing.
+    assert image_client.build_workflow(tpl, "kontext", "x", 770, 1350, 1,
+                                       references=["aivs_r.png"]) == wf
+    try:
+        image_client.build_workflow(tpl, "kontext", "x", 768, 1344, 1,
+                                    references=["a.png", "b.png"])
+        raise AssertionError("kontext accepted two references; it conditions on one image")
+    except ValueError:
+        pass
     assert wf["latent"]["inputs"]["width"] % 16 == 0 and wf["latent"]["inputs"]["height"] % 16 == 0
     w, h = image_client.keyframe_size(480, 832)
     assert w % 16 == 0 and h % 16 == 0 and abs(w / h - 480 / 832) < 0.03 and 0.8e6 < w * h < 1.2e6
