@@ -1,0 +1,85 @@
+name: Tests
+
+# The repository has carried two Python test suites since the v2 work — 22
+# tests over the workflow graphs, the ComfyUI client, caption timing and the
+# safety invariants, and 11 checks over the data-integrity fixes — and until
+# now no workflow ever ran them. They were only ever run by hand on one
+# machine, which means every pull request so far was merged on trust.
+#
+# Both suites are pytest-compatible but pytest-INDEPENDENT: plain `def test_*`
+# functions with bare asserts, no fixtures, no parametrize and no pytest
+# import, each file ending in a `__main__` block that discovers and runs its
+# own tests and exits 1 on failure. There is no root pytest config and no
+# conftest.py anywhere in this repository, so the suites are run here exactly
+# the way they are run locally: with plain `python`, not pytest.
+
+on:
+  pull_request:
+  push:
+
+# The suites only read the checkout. Nothing here needs write access.
+permissions:
+  contents: read
+
+# `push` is unqualified, so a branch with an open pull request fires both
+# events. The event name is part of the key so those two runs do not cancel
+# each other — only a newer run of the same event supersedes an older one.
+concurrency:
+  group: tests-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  python:
+    name: Python test suites
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      # Two tests in test_v2_pipeline.py — the filter-graph parse and the
+      # stereo mix — skip themselves with a bare `return` when
+      # shutil.which("ffmpeg") is falsy. A skip that reports as a pass is the
+      # failure mode this workflow exists to prevent, so ffmpeg is installed
+      # and both of them actually run.
+      - name: Install ffmpeg
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends ffmpeg
+          ffmpeg -version | head -1
+
+      # Deliberately not `-r app/backend/requirements.txt`: that pulls torch,
+      # kokoro, faster-whisper, soundfile and huggingface-hub, none of which
+      # the suites import, and would add gigabytes to every run. This is the
+      # smallest set that imports the code under test.
+      #
+      # python-multipart is not optional, although no test mentions it:
+      # routes/voices.py declares `UploadFile = File(...)`, and FastAPI calls
+      # ensure_multipart_is_installed() at route-registration time, so without
+      # it `import app.backend.main` raises RuntimeError before a single test
+      # runs — and test_data_integrity.py imports that module via TestClient.
+      # It is already declared in app/backend/requirements.txt.
+      - name: Install Python dependencies
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          pip install requests sqlalchemy fastapi pydantic httpx python-multipart
+
+      # One step per file, so a red run names the suite that broke.
+      - name: Workflow, client, timing, caption and safety suite
+        run: python app/backend/tests/test_v2_pipeline.py
+
+      # Boots the real FastAPI app through TestClient against a throwaway
+      # SQLite file (AIVS_DB_PATH), which starts the daemon. There is no
+      # Ollama on the runner: ollama_manager.start() finds no binary and
+      # returns False, so startup logs "Ollama: not found / failed" and
+      # carries on, which is the path this step exercises.
+      - name: Data-integrity suite
+        run: python app/backend/tests/test_data_integrity.py
