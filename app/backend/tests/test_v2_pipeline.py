@@ -356,6 +356,70 @@ def test_setup_models_refuses_foreign_hosts_and_escaping_paths():
             S.safe_dest(f)
 
 
+def test_setup_nodes_refuses_foreign_hosts_and_escaping_dirs():
+    sys.path.insert(0, str(ROOT / "scripts"))
+    import setup_nodes as N
+    for bad in ("http://github.com/x/y", "https://evil.example/x/y", "git@github.com:x/y",
+                "file:///etc/passwd", "https://github.com.evil.example/x/y"):
+        try:
+            N.check_url(bad)
+            raise AssertionError(f"accepted {bad}")
+        except ValueError:
+            pass
+    N.check_url("https://github.com/city96/ComfyUI-GGUF")
+    for bad in ("", "main", "HEAD", "6ea2651", "--upload-pack=calc.exe",
+                "6ea2651e7df66d7585f6ffee804b20e92fb38b8", "Z" * 40):
+        try:
+            N.check_commit(bad)
+            raise AssertionError(f"accepted commit {bad!r}")
+        except ValueError:
+            pass
+    N.check_commit("6ea2651e7df66d7585f6ffee804b20e92fb38b8a")
+    for bad in ("../../outside", "..", "a/b", "", "/abs"):
+        try:
+            N.safe_dest({"dir": bad})
+            raise AssertionError(f"dir escape accepted: {bad!r}")
+        except ValueError:
+            pass
+    assert N.safe_dest({"dir": "ComfyUI-GGUF"}).parent == N.NODES_DIR.resolve()
+    for n in N.catalog_nodes():
+        N.check_url(n["repo"])
+        N.check_commit(n["commit"])
+        N.safe_dest(n)
+
+
+def test_every_catalog_node_entry_has_a_pinned_commit():
+    sys.path.insert(0, str(ROOT / "scripts"))
+    import setup_nodes as N
+    catalog = json.loads((ROOT / "installer/catalog.json").read_text(encoding="utf-8"))
+    seen = {}
+    for m in catalog["models"]:
+        for n in m.get("requires_custom_nodes", []):
+            assert isinstance(n, dict), f"{m['id']}: node entry is still a bare URL: {n!r}"
+            keys = set(n)
+            assert {"repo", "commit", "dir"} <= keys, f"{m['id']}: missing keys: {sorted(keys)}"
+            assert keys <= {"repo", "commit", "dir", "requirements"}, f"{m['id']}: {sorted(keys)}"
+            N.safe_requirements(n, N.safe_dest(n))
+            N.check_commit(n["commit"])
+            # the same node must be pinned to the same commit wherever it is named
+            assert seen.setdefault(n["dir"], n) == n, f"{n['dir']} pinned twice differently"
+    nodes = N.catalog_nodes(catalog)
+    assert {n["dir"] for n in nodes} == set(seen)
+    assert nodes, "the catalog declares no custom nodes"
+    for n in nodes:
+        assert n["models"], n["dir"]
+
+
+def test_doctor_node_list_comes_from_the_catalog():
+    src = (ROOT / "scripts/doctor.py").read_text(encoding="utf-8")
+    assert "ComfyUI-GGUF" not in src, "doctor.py still hardcodes a node directory name"
+    assert "ComfyUI-Frame-Interpolation" not in src
+    assert "catalog_nodes" in src, "doctor.py does not read the catalog's nodes"
+    tree = ast.parse(src)
+    names = [n for n in ast.walk(tree) if isinstance(n, ast.Name) and n.id == "NODES"]
+    assert not names, "doctor.py still has a NODES list"
+
+
 def test_story_character_keys_cannot_become_paths():
     sys.path.insert(0, str(ROOT / "scripts"))
     import render_story as R

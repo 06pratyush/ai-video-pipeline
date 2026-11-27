@@ -329,50 +329,117 @@ def ensure_llm(gpu_info: dict) -> bool:
 
 
 # ── Step 8: ComfyUI ───────────────────────────────────────────────────────────
-def ensure_comfyui() -> bool:
-    candidates = [
-        ROOT / "app" / "runtime" / "comfyui",
-        Path.home() / "ComfyUI",
-        ROOT / "ComfyUI",
-    ]
-    for c in candidates:
-        if (c / "main.py").exists():
-            emit("comfyui", "skip", f"ComfyUI found: {c}")
-            return True
+def comfy_venv_python(base: Path) -> Path:
+    if platform.system() == "Windows":
+        return base / "venv" / "Scripts" / "python.exe"
+    return base / "venv" / "bin" / "python"
 
-    emit("comfyui", "running", "Installing ComfyUI...",
-         "Cloning repository (~50 MB) + installing requirements")
 
-    if not shutil.which("git"):
-        emit("comfyui", "error", "Git is required to install ComfyUI",
-             "Install Git from https://git-scm.com/downloads")
+def ensure_comfy_venv(base: Path, gpu_info: dict) -> bool:
+    """Give ComfyUI its own venv at <base>/venv with its own requirements in it.
+
+    ComfyUI must not share the backend venv: scripts/doctor.py and
+    app/backend/services/comfyui_manager.py both look for <base>/venv first, and the two
+    sides pin different versions of the same packages (transformers, numpy, torchvision).
+    The CUDA build of torch goes in FIRST and on its own, because ComfyUI's requirements.txt
+    asks for a bare `torch` and PyPI's Windows wheel is CPU-only -- installing it that way
+    would leave ComfyUI running the whole video pipeline on the CPU.
+    """
+    python = comfy_venv_python(base)
+    if not python.exists():
+        emit("comfyui", "running", "Creating the ComfyUI virtual environment...",
+             str(base / "venv"))
+        if not run_cmd([str(get_venv_python()), "-m", "venv", str(base / "venv")], "comfyui"):
+            emit("comfyui", "error", "Failed to create the ComfyUI virtual environment",
+                 f"Create it manually: python -m venv {base / 'venv'}")
+            return False
+    if not python.exists():
+        emit("comfyui", "error", f"ComfyUI venv has no interpreter at {python}")
         return False
 
-    dest = ROOT / "app" / "runtime" / "comfyui"
-    dest.parent.mkdir(parents=True, exist_ok=True)
+    have_torch = subprocess.run([str(python), "-c", "import torch; print(torch.__version__)"],
+                                capture_output=True, text=True)
+    if have_torch.returncode == 0:
+        emit("comfyui", "skip", f"ComfyUI PyTorch {have_torch.stdout.strip()} already installed")
+    else:
+        cmd = [str(python), "-m", "pip", "install", "--quiet",
+               "torch", "torchvision", "torchaudio"]
+        if gpu_info.get("has_gpu"):
+            emit("comfyui", "running",
+                 f"Installing CUDA PyTorch into the ComfyUI venv for {gpu_info['name']}...",
+                 "This may take 5-10 minutes on first run")
+            cmd += ["--index-url", "https://download.pytorch.org/whl/cu128"]
+        else:
+            emit("comfyui", "running", "No NVIDIA GPU detected — installing CPU PyTorch...",
+                 "Video generation will be very slow without a GPU")
+        if not run_cmd(cmd, "comfyui"):
+            emit("comfyui", "error", "Failed to install PyTorch into the ComfyUI venv",
+                 "Check your internet connection and try again")
+            return False
 
-    ok = run_cmd(
-        ["git", "clone", "--depth=1",
-         "https://github.com/comfyanonymous/ComfyUI.git", str(dest)],
-        "comfyui",
-    )
-    if not ok:
-        emit("comfyui", "error", "Failed to clone ComfyUI",
-             "Check internet connection or clone manually to app/runtime/comfyui/")
-        return False
-
-    # Install ComfyUI requirements into our venv
-    python = get_venv_python()
-    emit("comfyui", "running", "Installing ComfyUI requirements (~10 min on first run)...")
-    req_file = dest / "requirements.txt"
+    req_file = base / "requirements.txt"
     if req_file.exists():
+        emit("comfyui", "running", "Installing ComfyUI requirements (~10 min on first run)...")
+        if not run_cmd([str(python), "-m", "pip", "install", "--quiet", "-r", str(req_file)],
+                       "comfyui"):
+            emit("comfyui", "error", "Failed to install ComfyUI requirements",
+                 f"Run manually: {python} -m pip install -r {req_file}")
+            return False
+    return True
+
+
+def ensure_comfy_nodes() -> bool:
+    """Clone the catalog's custom nodes at their pinned commits (scripts/setup_nodes.py)."""
+    script = ROOT / "scripts" / "setup_nodes.py"
+    if not script.exists():
+        emit("comfyui_nodes", "skip", "scripts/setup_nodes.py not found")
+        return True
+    emit("comfyui_nodes", "running", "Installing ComfyUI custom nodes at their pinned commits...",
+         "ComfyUI-GGUF and ComfyUI-Frame-Interpolation, from installer/catalog.json")
+    if not run_cmd([str(get_venv_python()), str(script)], "comfyui_nodes"):
+        emit("comfyui_nodes", "error", "Failed to install the ComfyUI custom nodes",
+             f"Run manually: {get_venv_python()} {script}")
+        return False
+    emit("comfyui_nodes", "done", "ComfyUI custom nodes ready ✓")
+    return True
+
+
+def ensure_comfyui(gpu_info: dict) -> bool:
+    base = None
+    for c in (ROOT / "app" / "runtime" / "comfyui", Path.home() / "ComfyUI", ROOT / "ComfyUI"):
+        if (c / "main.py").exists():
+            base = c
+            emit("comfyui", "skip", f"ComfyUI found: {c}")
+            break
+
+    if base is None:
+        emit("comfyui", "running", "Installing ComfyUI...",
+             "Cloning repository (~50 MB) + its own venv and requirements")
+
+        if not shutil.which("git"):
+            emit("comfyui", "error", "Git is required to install ComfyUI",
+                 "Install Git from https://git-scm.com/downloads")
+            return False
+
+        base = ROOT / "app" / "runtime" / "comfyui"
+        base.parent.mkdir(parents=True, exist_ok=True)
+
         ok = run_cmd(
-            [str(python), "-m", "pip", "install", "--quiet", "-r", str(req_file)],
+            ["git", "clone", "--depth=1",
+             "https://github.com/comfyanonymous/ComfyUI.git", str(base)],
             "comfyui",
         )
+        if not ok:
+            emit("comfyui", "error", "Failed to clone ComfyUI",
+                 "Check internet connection or clone manually to app/runtime/comfyui/")
+            return False
 
+    # Both paths need the venv and the nodes: an existing checkout from an older installer
+    # has neither, and the nodes are what make the v2 workflows loadable at all.
+    if not ensure_comfy_venv(base, gpu_info):
+        return False
     emit("comfyui", "done", "ComfyUI installed ✓")
-    return True
+    return ensure_comfy_nodes()
 
 
 # ── Step 9: Download Wan2.1 model ─────────────────────────────────────────────
@@ -488,7 +555,7 @@ def main():
         (ensure_ffmpeg,                  65),
         (check_ollama,                   72),
         (lambda: ensure_llm(gpu_info),   80),
-        (ensure_comfyui,                 88),
+        (lambda: ensure_comfyui(gpu_info), 88),
         (lambda: ensure_wan_model(gpu_info), 97),
         (install_frontend,              100),
     ]
